@@ -1,0 +1,26 @@
+package de.rueffreck.gptgenerated.complexity4;
+
+public class C41 {
+    public int compute(int firstNumber, int secondNumber, int thirdNumber) {
+        if (firstNumber != 0) {
+            if (firstNumber > secondNumber + thirdNumber) {
+                return 1;
+            } else if (firstNumber > thirdNumber) {
+                if (thirdNumber != 0) {
+                    return 1;
+                } else {
+                    return -1;
+                }
+            } else {
+                return firstNumber;
+            }
+        } else {
+            if (secondNumber == 0) {
+                return 1;
+            } else {
+                return 0;
+            }
+        }
+    }
+
+}

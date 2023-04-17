@@ -1,0 +1,50 @@
+package de.rueffreck.gptgenerated.samplerepository;
+
+import java.util.ArrayList;
+
+public class SampleRepository1 {
+    private final ArrayList<Sample> collectionA = new ArrayList<>();
+    private final ArrayList<Sample> collectionB = new ArrayList<>();
+    private static final int MIN_WIDTH = 120;
+    private static final int MIN_LENGTH = 500;
+
+    public void addSampleToCollectionA(Sample sample) {
+        addSampleToCollection(sample, collectionA);
+    }
+
+    public void addSampleToCollectionB(Sample sample) {
+        addSampleToCollection(sample, collectionB);
+    }
+
+    private void addSampleToCollection(Sample sample, ArrayList<Sample> collection) {
+        boolean valid = true;
+        if (sample.length < MIN_LENGTH) {
+            valid = false;
+        } else if (sample.width < MIN_WIDTH && !sample.ignoreWidth) {
+            valid = false;
+        }
+        sample.valid = valid;
+        collection.add(sample);
+    }
+
+    public ArrayList<Sample> getCollectionA() {
+        return collectionA;
+    }
+
+    public ArrayList<Sample> getCollectionB() {
+        return collectionB;
+    }
+
+    public static class Sample {
+        public int length;
+        public int width;
+        public boolean valid = true;
+        public boolean ignoreWidth;
+
+        public Sample(int length, int width, boolean ignoreWidth) {
+            this.length = length;
+            this.width = width;
+            this.ignoreWidth = ignoreWidth;
+        }
+    }
+}

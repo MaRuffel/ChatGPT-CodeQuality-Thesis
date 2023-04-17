@@ -1,0 +1,67 @@
+package de.rueffreck.gptgenerated.sampleprocessor;
+
+public class SampleProcessor1 {
+    private int result;
+    private boolean isMeasurementsValid;
+    private boolean isAttributesValid;
+    private boolean isHealthValid;
+
+    private static final int MIN_ATTRIBUTE_VALUE = 2;
+    private static final int MAX_ATTRIBUTE1_VALUE = 50;
+    private static final int MIN_ATTRIBUTE2_VALUE = 2;
+    private static final int MIN_ATTRIBUTE3_VALUE = 5;
+    private static final int MIN_HEALTH_AMOUNT = 200;
+
+    public SampleProcessor1(int length, int width, int weight, int attribute1, int attribute2, int attribute3, int amount, int health, int age) {
+        this.result = compute(length, width, weight, attribute1, attribute2, attribute3, amount, health, age);
+    }
+
+    public int getResult() {
+        return result;
+    }
+
+    public boolean isMeasurementsValid() {
+        return isMeasurementsValid;
+    }
+
+    public boolean isAttributesValid() {
+        return isAttributesValid;
+    }
+
+    public boolean isHealthValid() {
+        return isHealthValid;
+    }
+
+    private int compute(int length, int width, int weight, int attribute1, int attribute2, int attribute3, int amount, int health, int age) {
+        isMeasurementsValid = length > 0 && width > 0 && weight > 0;
+
+        if (attribute1 > MIN_ATTRIBUTE_VALUE && attribute1 < MAX_ATTRIBUTE1_VALUE) {
+            isAttributesValid = true;
+        } else if (attribute2 != attribute3) {
+            isAttributesValid = attribute2 > MIN_ATTRIBUTE2_VALUE && attribute3 > MIN_ATTRIBUTE3_VALUE;
+        } else {
+            isAttributesValid = false;
+        }
+
+        if (health != 1) {
+            isHealthValid = false;
+        } else if (amount > MIN_HEALTH_AMOUNT && age > 0) {
+            double ratio = (double) age / amount;
+            isHealthValid = ratio > 1;
+        } else {
+            isHealthValid = false;
+        }
+
+        int result = 0;
+        if (isMeasurementsValid) {
+            result++;
+        }
+        if (isAttributesValid) {
+            result++;
+        }
+        if (isHealthValid) {
+            result++;
+        }
+        return result;
+    }
+}

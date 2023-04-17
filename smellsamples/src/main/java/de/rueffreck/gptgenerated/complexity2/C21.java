@@ -1,0 +1,31 @@
+package de.rueffreck.gptgenerated.complexity2;
+
+public class C21 {
+    public int compute(int[] numbers, int max, int target) {
+        if (numbers.length == 0) {
+            return 0;
+        }
+
+        int total = 0;
+        for (int num : numbers) {
+            if (num <= 0) {
+                return -1;
+            }
+
+            if (num > max) {
+                int sum = num + max;
+                if (sum == target) {
+                    total += num;
+                } else {
+                    total += sum;
+                }
+            } else if (num == target) {
+                total += target / 2;
+            } else {
+                total += num;
+            }
+        }
+        return total;
+    }
+
+}

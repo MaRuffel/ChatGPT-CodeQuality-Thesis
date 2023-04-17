@@ -1,0 +1,47 @@
+package de.rueffreck.gptgenerated.complexity1;
+
+public class C11 {
+    public int compute(int num1, int num2, int num3, int num4) {
+        if(num1 <= 1) {
+            return num1;
+        }
+
+        if(num2 == 0) {
+            return 0;
+        }
+
+        int sum = num1 + num2;
+        if(sum < 4 || num3 <= sum) {
+            return -1;
+        }
+
+        int diff = num3 - sum;
+        int result = -1;
+        switch(diff) {
+            case 1:
+                result = num4;
+                break;
+            case 2:
+                result = num4 + sum;
+                break;
+            case 3:
+                if(num1 == num3) {
+                    result = num1 + num3;
+                } else {
+                    result = num1;
+                }
+                break;
+            case 4:
+                result = num2;
+                break;
+            case 5:
+                result = 1;
+                break;
+            default:
+                result = -1;
+        }
+
+        return result;
+    }
+
+}
