@@ -1,0 +1,80 @@
+@Override
+public ModelWriter writeAnnotation(JavaAnnotation annotation) {
+    StringBuilder builder = new StringBuilder();
+    builder.append('@');
+    builder.append(annotation.getType().getGenericValue());
+
+    Map<String, AnnotationValue> propertyMap = annotation.getPropertyMap();
+    if (!propertyMap.isEmpty()) {
+        builder.append('(');
+        builder.append(System.lineSeparator());
+        builder.append(writeProperties(propertyMap));
+        builder.append(')');
+    }
+
+    builder.append(System.lineSeparator());
+    buffer.append(builder.toString());
+    return this;
+}
+
+private String writeProperties(Map<String, AnnotationValue> propertyMap) {
+    StringBuilder builder = new StringBuilder();
+    boolean first = true;
+    for (Map.Entry<String, AnnotationValue> entry : propertyMap.entrySet()) {
+        if (!first) {
+            builder.append(',');
+            builder.append(System.lineSeparator());
+        }
+        first = false;
+
+        String key = entry.getKey();
+        AnnotationValue value = entry.getValue();
+
+        if (propertyMap.size() != 1 || !"value".equals(key)) {
+            builder.append(key);
+            builder.append('=');
+        }
+
+        if (value.getParameterValue() instanceof JavaAnnotation) {
+            builder.append(writeAnnotation((JavaAnnotation) value.getParameterValue()));
+        } else if (value.getParameterValue() instanceof Collection<?>) {
+            Collection<?> annotations = (Collection<?>) value.getParameterValue();
+            Object[] a = annotations.toArray();
+            builder.append("{");
+            for (int i = 0; i < a.length; i++) {
+                if (a[i] instanceof JavaAnnotation) {
+                    if (i > 0) {
+                        builder.append(", ");
+                    }
+                    builder.append(writeAnnotation((JavaAnnotation) a[i]));
+                } else {
+                    if (i > 0) {
+                        builder.append(", ");
+                    }
+                    builder.append(a[i].toString());
+                }
+            }
+            builder.append("}");
+        } else {
+            builder.append(value.toString());
+        }
+    }
+    return builder.toString();
+}
+
+private String writeAnnotation(JavaAnnotation annotation) {
+    StringBuilder builder = new StringBuilder();
+    builder.append('@');
+    builder.append(annotation.getType().getGenericValue());
+
+    Map<String, AnnotationValue> propertyMap = annotation.getPropertyMap();
+    if (!propertyMap.isEmpty()) {
+        builder.append('(');
+        builder.append(System.lineSeparator());
+        builder.append(writeProperties(propertyMap));
+        builder.append(')');
+    }
+
+    builder.append(System.lineSeparator());
+    return builder.toString();
+}

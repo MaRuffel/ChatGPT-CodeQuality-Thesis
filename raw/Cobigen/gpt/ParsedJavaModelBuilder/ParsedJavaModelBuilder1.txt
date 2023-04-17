@@ -1,0 +1,29 @@
+@SuppressWarnings("unchecked")
+private void extractAnnotationsRecursively(Map<String, Object> annotationsMap, List<JavaAnnotation> annotations) {
+  for (JavaAnnotation annotation : annotations) {
+    Map<String, Object> annotationParameters = new HashMap<>();
+    annotationsMap.putIfAbsent(annotation.getType().getCanonicalName().replace(".", "_"), annotationParameters);
+
+    for (String propertyName : annotation.getPropertyMap().keySet()) {
+      Object value = annotation.getNamedParameter(propertyName);
+      if (value instanceof List<?> && !((List<?>) value).isEmpty() && ((List<?>) value).get(0) instanceof JavaAnnotation) {
+        List<Map<String, Object>> recursiveAnnotationList = new LinkedList<>();
+        annotationParameters.put(propertyName, recursiveAnnotationList);
+        for (JavaAnnotation a : (List<JavaAnnotation>) value) {
+          Map<String, Object> annotationParameterParameters = new HashMap<>();
+          extractAnnotationsRecursively(annotationParameterParameters, List.of(a));
+          recursiveAnnotationList.add(annotationParameterParameters);
+        }
+      } else if (value instanceof Enum<?>[]) {
+        List<String> enumValues = new LinkedList<>();
+        for (Enum<?> e : (Enum<?>[]) value) {
+          enumValues.add(e.name());
+        }
+        annotationParameters.put(propertyName, enumValues);
+      } else if (value instanceof Object[]) {
+        annotationParameters.put(propertyName, value);
+        // annotationParameters.put(propertyName, List.of(value));
+      } else if (value instanceof Enum<?> | value instanceof Byte | value instanceof Short | value instanceof Integer | value instanceof Long | value instanceof Float | value instanceof Double | value instanceof Boolean | value instanceof Character) {
+        annotationParameters.put(propertyName, value);
+      } else if (value instanceof Collection<?>) {
+        annotationParameters

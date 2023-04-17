@@ -1,0 +1,26 @@
+public static List<Anchor> joinKeySetsRetainOrder(Map<Anchor, String> baseMap, Map<Anchor, String> patchMap) {
+    List<Anchor> joinedList = new ArrayList<>();
+
+    // Add all keys from the base map
+    for (Anchor baseKey : baseMap.keySet()) {
+        if (!joinedList.contains(baseKey)) {
+            joinedList.add(baseKey);
+        }
+    }
+
+    // Add keys from the patch map that aren't in the base map
+    for (Anchor patchKey : patchMap.keySet()) {
+        if (!baseMap.containsKey(patchKey) && !joinedList.contains(patchKey)) {
+            joinedList.add(patchKey);
+        }
+    }
+
+    // Add keys from the patch map that are also in the base map, in the order of the base map
+    for (Anchor baseKey : baseMap.keySet()) {
+        if (patchMap.containsKey(baseKey) && !joinedList.contains(baseKey)) {
+            joinedList.add(baseKey);
+        }
+    }
+
+    return joinedList;
+}

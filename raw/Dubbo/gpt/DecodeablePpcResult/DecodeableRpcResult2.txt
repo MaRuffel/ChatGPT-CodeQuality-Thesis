@@ -1,0 +1,35 @@
+/**
+ * Decode the response.
+ *
+ * @throws Exception if decoding the response fails.
+ */
+@Override
+public void decode() throws Exception {
+    if (hasDecoded || channel == null || inputStream == null) {
+        return;
+    }
+
+    try {
+        if (invocation != null) {
+            Configuration systemConfiguration = ConfigurationUtils.getSystemConfiguration(channel.getUrl().getScopeModel());
+            if (systemConfiguration == null || systemConfiguration.getBoolean(SERIALIZATION_SECURITY_CHECK_KEY, true)) {
+                Object serializationTypeObj = invocation.get(SERIALIZATION_ID_KEY);
+                if (serializationTypeObj != null && (byte) serializationTypeObj != serializationType) {
+                    throw new IOException("Unexpected serialization id: " + serializationType + " received from network. Please check if the peer sent the right id.");
+                }
+            }
+        }
+
+        decode(channel, inputStream);
+    } catch (Throwable e) {
+        String errorMessage = "Decode RPC result failed: " + e.getMessage();
+        log.warn(PROTOCOL_FAILED_DECODE, "", "", errorMessage, e);
+        response.setStatus(Response.CLIENT_ERROR);
+        response.setErrorMessage(StringUtils.toString(e));
+    } finally {
+        hasDecoded = true;
+        if (inputStream != null) {
+            inputStream.close();
+        }
+    }
+}

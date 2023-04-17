@@ -1,0 +1,76 @@
+Use static imports for JPAQuery and Alias classes:
+Instead of importing JPAQuery and Alias classes using the fully qualified name, we can use static imports to make the code more concise and readable. For example:
+
+javascript
+Copy code
+import static org.springframework.data.jpa.repository.support.Querydsl.*;
+import static com.myproject.entity.QBookingEntity.*;
+Use method chaining to simplify code:
+We can use method chaining to simplify the code and avoid unnecessary variable assignments. For example:
+
+perl
+Copy code
+if (bookingDate != null) {
+  query.where($(alias.getBookingDate()).eq(bookingDate));
+}
+can be simplified to:
+
+perl
+Copy code
+query.where(bookingDate != null, $(alias.getBookingDate()).eq(bookingDate));
+Use StringUtils class to simplify string checks:
+Instead of using (string != null) && !string.isEmpty(), we can use StringUtils class to simplify the check. For example:
+
+scss
+Copy code
+import org.apache.commons.lang3.StringUtils;
+
+if (StringUtils.isNotBlank(name)) {
+  QueryUtil.get().whereString(query, $(alias.getName()), name, criteria.getNameOption());
+}
+Use EnumPath instead of Path for enum types:
+We can use EnumPath instead of Path for enum types to avoid runtime errors caused by typos. For example:
+
+perl
+Copy code
+if (bookingType != null) {
+  query.where($(alias.getBookingType()).eq(bookingType));
+}
+can be simplified to:
+
+csharp
+Copy code
+if (bookingType != null) {
+  query.where($(alias.getBookingType(), bookingType));
+}
+Use optional parameters in QueryUtil:
+We can modify the QueryUtil.get().whereString() method to accept optional parameters, which will make the code more flexible and easier to read. For example:
+
+scss
+Copy code
+public static <T> void whereString(JPAQuery<T> query, StringPath path, String value, StringOption option, Optional<BooleanExpression> condition) {
+  if (StringUtils.isNotBlank(value)) {
+    BooleanExpression expression = path.likeIgnoreCase(option.toExpression(value));
+    condition.ifPresent(expression::and);
+    query.where(expression);
+  }
+}
+Improve variable naming:
+We can improve variable naming to make the code more readable and self-documenting. For example:
+
+csharp
+Copy code
+Long tableId = criteria.getTableId();
+if (tableId != null && alias.getTable() != null) {
+  query.where($(alias.getTable().getId()).eq(tableId));
+}
+Add comments for complex logic:
+We can add comments to explain complex or non-obvious logic to make the code more understandable for other developers. For example:
+
+csharp
+Copy code
+// Filter by table ID
+Long tableId = criteria.getTableId();
+if (tableId != null && alias.getTable() != null) {
+  query.where($(alias.getTable().getId()).eq(tableId));
+}

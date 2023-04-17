@@ -1,0 +1,43 @@
+void tryEmitScalar(U value) {
+    if (get() == 0 && compareAndSet(0, 1)) {
+        long requestedCount = requested.get();
+        SimpleQueue<U> mainQueue = getMainQueue();
+        SimpleQueue<U> queue = this.queue;
+        if (requestedCount == 0L) {
+            // No demand from downstream
+            onError(new IllegalStateException("No demand from downstream"));
+            return;
+        }
+        if (queue == null || queue.isEmpty()) {
+            // No items buffered, emit the value to downstream
+            downstream.onNext(value);
+            if (requestedCount != Long.MAX_VALUE) {
+                requested.decrementAndGet();
+            }
+            if (maxConcurrency != Integer.MAX_VALUE && !cancelled && ++scalarEmitted == scalarLimit) {
+                scalarEmitted = 0;
+                upstream.request(scalarLimit);
+            }
+        } else {
+            // Buffer the value in the main queue
+            if (!mainQueue.offer(value)) {
+                onError(new QueueOverflowException());
+                return;
+            }
+        }
+        if (decrementAndGet() == 0) {
+            return;
+        }
+    } else {
+        // Concurrent access to the operator, buffer the value in the main queue
+        SimpleQueue<U> mainQueue = getMainQueue();
+        if (!mainQueue.offer(value)) {
+            onError(new QueueOverflowException());
+            return;
+        }
+        if (getAndIncrement() != 0) {
+            return;
+        }
+    }
+    drainLoop();
+}

@@ -1,0 +1,91 @@
+Use an enum for deployer state
+Instead of checking multiple boolean conditions for each deployer state, it might be cleaner and easier to understand if you use an enum for the deployer state. For example:
+java
+Copy code
+enum DeployerState {
+    PENDING,
+    STARTING,
+    STARTED,
+    STOPPING,
+    STOPPED,
+    FAILED,
+    UNKNOWN
+}
+Use a switch statement
+Instead of multiple if-else statements, it's cleaner to use a switch statement.
+java
+Copy code
+DeployerState newState = DeployerState.UNKNOWN;
+int pending = 0, starting = 0, started = 0, stopping = 0, stopped = 0, failed = 0;
+
+for (ModuleModel moduleModel : applicationModel.getModuleModels()) {
+    ModuleDeployer deployer = moduleModel.getDeployer();
+    switch (deployer.getState()) {
+        case PENDING:
+            pending++;
+            break;
+        case STARTING:
+            starting++;
+            break;
+        case STARTED:
+            started++;
+            break;
+        case STOPPING:
+            stopping++;
+            break;
+        case STOPPED:
+            stopped++;
+            break;
+        case FAILED:
+            failed++;
+            break;
+    }
+}
+
+if (failed > 0) {
+    newState = DeployerState.FAILED;
+} else if (started > 0) {
+    if (pending + starting + stopping + stopped == 0) {
+        newState = DeployerState.STARTED;
+    } else if (pending + starting > 0) {
+        newState = DeployerState.STARTING;
+    } else if (stopping + stopped > 0) {
+        newState = DeployerState.STOPPING;
+    }
+} else if (starting > 0) {
+    newState = DeployerState.STARTING;
+} else if (pending > 0) {
+    if (starting + starting + stopping + stopped == 0) {
+        newState = DeployerState.PENDING;
+    } else if (stopping + stopped > 0) {
+        newState = DeployerState.STOPPING;
+    }
+} else if (stopping > 0) {
+    newState = DeployerState.STOPPING;
+} else if (stopped > 0) {
+    newState = DeployerState.STOPPED;
+}
+return newState;
+Use Java 8 stream API
+If you're using Java 8 or later, you could use the stream API to simplify the code:
+scss
+Copy code
+DeployerState newState = DeployerState.UNKNOWN;
+
+Map<DeployerState, Long> stateCountMap = applicationModel.getModuleModels().stream()
+        .map(moduleModel -> moduleModel.getDeployer().getState())
+        .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
+
+int pending = stateCountMap.getOrDefault(DeployerState.PENDING, 0L).intValue();
+int starting = stateCountMap.getOrDefault(DeployerState.STARTING, 0L).intValue();
+int started = stateCountMap.getOrDefault(DeployerState.STARTED, 0L).intValue();
+int stopping = stateCountMap.getOrDefault(DeployerState.STOPPING, 0L).intValue();
+int stopped = stateCountMap.getOrDefault(DeployerState.STOPPED, 0L).intValue();
+int failed = stateCountMap.getOrDefault(DeployerState.FAILED, 0L).intValue();
+
+if (failed > 0) {
+    newState = DeployerState.FAILED;
+} else if (started > 0) {
+    if (pending + starting + stopping + stopped == 0) {
+        newState = DeployerState.STARTED;
+    } else

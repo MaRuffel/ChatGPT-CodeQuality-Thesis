@@ -1,0 +1,64 @@
+default Page<BookingEntity> findBookings(BookingSearchCriteriaTo criteria) {
+    CriteriaBuilder builder = entityManager.getCriteriaBuilder();
+    CriteriaQuery<BookingEntity> query = builder.createQuery(BookingEntity.class);
+    Root<BookingEntity> root = query.from(BookingEntity.class);
+
+    String name = criteria.getName();
+    if (StringUtils.isNotBlank(name)) {
+        query.where(builder.like(root.get(BookingEntity_.name), getLikeExpression(name, criteria.getNameOption())));
+    }
+
+    String bookingToken = criteria.getBookingToken();
+    if (StringUtils.isNotBlank(bookingToken)) {
+        query.where(builder.like(root.get(BookingEntity_.bookingToken), getLikeExpression(bookingToken, criteria.getBookingTokenOption())));
+    }
+
+    String comment = criteria.getComment();
+    if (StringUtils.isNotBlank(comment)) {
+        query.where(builder.like(root.get(BookingEntity_.comment), getLikeExpression(comment, criteria.getCommentOption())));
+    }
+
+    Instant bookingDate = criteria.getBookingDate();
+    if (bookingDate != null) {
+        query.where(builder.equal(root.get(BookingEntity_.bookingDate), bookingDate));
+    }
+
+    Instant expirationDate = criteria.getExpirationDate();
+    if (expirationDate != null) {
+        query.where(builder.equal(root.get(BookingEntity_.expirationDate), expirationDate));
+    }
+
+    Instant creationDate = criteria.getCreationDate();
+    if (creationDate != null) {
+        query.where(builder.equal(root.get(BookingEntity_.creationDate), creationDate));
+    }
+
+    String email = criteria.getEmail();
+    if (StringUtils.isNotBlank(email)) {
+        query.where(builder.like(root.get(BookingEntity_.email), getLikeExpression(email, criteria.getEmailOption())));
+    }
+
+    Boolean canceled = criteria.getCanceled();
+    if (canceled != null) {
+        query.where(builder.equal(root.get(BookingEntity_.canceled), canceled));
+    }
+
+    BookingType bookingType = criteria.getBookingType();
+    if (bookingType != null) {
+        query.where(builder.equal(root.get(BookingEntity_.bookingType), bookingType));
+    }
+
+    Long tableId = criteria.getTableId();
+    if (tableId != null) {
+        Join<BookingEntity, TableEntity> join = root.join(BookingEntity_.table);
+        query.where(builder.equal(join.get(TableEntity_.id), tableId));
+    }
+
+    TypedQuery<BookingEntity> typedQuery = entityManager.createQuery(query);
+    return QueryUtil.get().findPaginated(criteria.getPageable(), typedQuery, true);
+}
+
+private String getLikeExpression(String value, LikeOption likeOption) {
+    switch (likeOption) {
+        case STARTS_WITH:
+           

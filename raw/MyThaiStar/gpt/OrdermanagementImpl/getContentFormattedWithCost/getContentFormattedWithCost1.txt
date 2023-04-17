@@ -1,0 +1,54 @@
+private String getContentFormattedWithCost(OrderEntity order) {
+    try (OrderLineDao orderLineDao = new OrderLineDao()) {
+        List<OrderLineEntity> orderLines = orderLineDao.findOrderLines(order.getId());
+
+        StringBuilder sb = new StringBuilder("\n");
+        BigDecimal finalPrice = BigDecimal.ZERO;
+        for (OrderLineEntity orderLine : orderLines) {
+            DishCto dishCto = this.dishManagement.findDish(orderLine.getDishId());
+            List<IngredientEto> extras = dishCto.getExtras();
+
+            // Calculate dish cost
+            BigDecimal dishCost = dishCto.getDish().getPrice().multiply(BigDecimal.valueOf(orderLine.getAmount()));
+            BigDecimal linePrice = dishCost.add(getExtraCost(orderLine.getExtras(), extras));
+
+            // Add dish details to the string builder
+            sb.append(String.format("%s, x%d. Extras: %s ==> Dish cost: %s\n",
+                    dishCto.getDish().getName(),
+                    orderLine.getAmount(),
+                    getSelectedExtras(orderLine.getExtras(), extras),
+                    linePrice));
+
+            // Add dish cost to the final price
+            finalPrice = finalPrice.add(linePrice);
+        }
+
+        // Add total order cost to the string builder
+        sb.append(String.format("Total Order cost: %s", finalPrice));
+        return sb.toString();
+    }
+}
+
+private BigDecimal getExtraCost(List<Ingredient> selectedExtras, List<IngredientEto> extras) {
+    BigDecimal extraCost = BigDecimal.ZERO;
+    for (Ingredient extra : selectedExtras) {
+        for (IngredientEto ingredientEto : extras) {
+            if (extra.getId().equals(ingredientEto.getId())) {
+                extraCost = extraCost.add(ingredientEto.getPrice());
+            }
+        }
+    }
+    return extraCost;
+}
+
+private String getSelectedExtras(List<Ingredient> selectedExtras, List<IngredientEto> extras) {
+    StringBuilder sb = new StringBuilder();
+    for (Ingredient extra : selectedExtras) {
+        for (IngredientEto ingredientEto : extras) {
+            if (extra.getId().equals(ingredientEto.getId())) {
+                sb.append(ingredientEto.getName()).append(",");
+            }
+        }
+    }
+    return sb.toString();
+}

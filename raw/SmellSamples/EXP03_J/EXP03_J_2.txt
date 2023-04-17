@@ -1,0 +1,18 @@
+public class Sut {
+public <T extends Comparable<T>> int compare(T i, T j) {
+return i.compareTo(j);
+}
+
+public boolean isSame(int i, int j) {
+    return i == j;
+}
+
+public void doEqual() {
+    Boolean b1 = Boolean.valueOf("true");
+    Boolean b2 = Boolean.valueOf("true");
+
+    if(b1.equals(b2)) {
+        System.out.println("Never printed");
+    }
+}
+}

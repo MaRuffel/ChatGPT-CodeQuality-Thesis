@@ -1,0 +1,39 @@
+private OrderEntity getValidatedOrder(String bookingToken, OrderEntity order) {
+BookingType bookingType = getOrderType(bookingToken);
+switch (bookingType) {
+case COMMON:
+BookingCto booking = getBookingById(bookingToken);
+validateBookingExists(booking);
+validateNoCurrentOrders(getBookingOrders(booking.getId()));
+order.setBookingId(booking.getId());
+break;
+case INVITED:
+InvitedGuestEto guest = getInvitedGuestById(bookingToken);
+validateGuestExists(guest);
+validateNoCurrentOrders(getInvitedGuestOrders(guest.getId()));
+order.setBookingId(guest.getBookingId());
+order.setInvitedGuestId(guest.getId());
+break;
+default:
+throw new IllegalArgumentException("Invalid booking type: " + bookingType);
+}
+return order;
+}
+
+private void validateBookingExists(BookingCto booking) {
+if (booking == null) {
+throw new NoBookingException();
+}
+}
+
+private void validateGuestExists(InvitedGuestEto guest) {
+if (guest == null) {
+throw new NoInviteException();
+}
+}
+
+private void validateNoCurrentOrders(List<OrderCto> orders) {
+if (!orders.isEmpty()) {
+throw new OrderAlreadyExistException();
+}
+}

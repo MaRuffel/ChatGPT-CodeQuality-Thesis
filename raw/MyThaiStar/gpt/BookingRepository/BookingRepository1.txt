@@ -1,0 +1,49 @@
+default Page<BookingEntity> findBookings(BookingSearchCriteriaTo criteria) {
+
+    BookingEntity alias = newDslAlias();
+    JPAQuery<BookingEntity> query = newDslQuery(alias);
+
+    Optional.ofNullable(criteria.getName())
+            .filter(this::isNotEmpty)
+            .ifPresent(name -> whereString(query, alias::getName, name, criteria.getNameOption()));
+    
+    Optional.ofNullable(criteria.getBookingToken())
+            .filter(this::isNotEmpty)
+            .ifPresent(bookingToken -> whereString(query, alias::getBookingToken, bookingToken, criteria.getBookingTokenOption()));
+    
+    Optional.ofNullable(criteria.getComment())
+            .filter(this::isNotEmpty)
+            .ifPresent(comment -> whereString(query, alias::getComment, comment, criteria.getCommentOption()));
+    
+    Optional.ofNullable(criteria.getBookingDate())
+            .ifPresent(bookingDate -> query.where(alias.getBookingDate().eq(bookingDate)));
+    
+    Optional.ofNullable(criteria.getExpirationDate())
+            .ifPresent(expirationDate -> query.where(alias.getExpirationDate().eq(expirationDate)));
+    
+    Optional.ofNullable(criteria.getCreationDate())
+            .ifPresent(creationDate -> query.where(alias.getCreationDate().eq(creationDate)));
+    
+    Optional.ofNullable(criteria.getEmail())
+            .filter(this::isNotEmpty)
+            .ifPresent(email -> whereString(query, alias::getEmail, email, criteria.getEmailOption()));
+    
+    Optional.ofNullable(criteria.getCanceled())
+            .ifPresent(canceled -> query.where(alias.getCanceled().eq(canceled)));
+    
+    Optional.ofNullable(criteria.getBookingType())
+            .ifPresent(bookingType -> query.where(alias.getBookingType().eq(bookingType)));
+    
+    Optional.ofNullable(criteria.getTableId())
+            .ifPresent(tableId -> query.where(alias.getTable().getId().eq(tableId)));
+
+    return findPaginated(criteria.getPageable(), query, true);
+}
+
+private void whereString(JPAQuery<BookingEntity> query, Function<BookingEntity, StringPath> pathFunction, String str, StringOption option) {
+    query.where(pathFunction.apply(alias).like(str, option));
+}
+
+private boolean isNotEmpty(String str) {
+    return str != null && !str.isEmpty();
+}

@@ -1,0 +1,67 @@
+@Override
+public void unexport() {
+    String key = getCacheKey(this.originInvoker);
+    bounds.remove(key);
+
+    try (Registry registry = RegistryProtocol.this.getRegistry(getRegistryUrl(originInvoker))) {
+        registry.unregister(registerUrl);
+    } catch (Exception e) {
+        logError("Failed to unregister service", e);
+    }
+
+    if (subscribeUrl == null) {
+        return;
+    }
+
+    Map<URL, Set<NotifyListener>> overrideListeners = getProviderConfigurationListener(subscribeUrl).getOverrideListeners();
+    Set<NotifyListener> listeners = overrideListeners.get(subscribeUrl);
+    if (listeners == null) {
+        return;
+    }
+
+    if (listeners.remove(notifyListener)) {
+        Registry registry = RegistryProtocol.this.getRegistry(getRegistryUrl(originInvoker));
+        if (!registry.isServiceDiscovery()) {
+            registry.unsubscribe(subscribeUrl, notifyListener);
+        }
+        removeServiceConfigurationListener(subscribeUrl.getServiceKey());
+    }
+
+    if (listeners.isEmpty()) {
+        overrideListeners.remove(subscribeUrl);
+    }
+
+    int timeout = DEFAULT_SERVER_SHUTDOWN_TIMEOUT;
+    if (subscribeUrl != null) {
+        timeout = ConfigurationUtils.getServerShutdownTimeout(subscribeUrl.getScopeModel());
+    }
+
+    scheduleUnexport(timeout);
+}
+
+private void scheduleUnexport(int timeout) {
+    executor.schedule(() -> {
+        try {
+            exporter.unexport();
+        } catch (Exception e) {
+            logError("Failed to unexport service", e);
+        }
+    }, timeout, TimeUnit.MILLISECONDS);
+}
+
+private void removeServiceConfigurationListener(String serviceKey) {
+    ApplicationModel applicationModel = getApplicationModel(registerUrl.getScopeModel());
+    if (applicationModel.getModelEnvironment().getConfiguration().convert(Boolean.class, ENABLE_CONFIGURATION_LISTEN, true)) {
+        for (ModuleModel moduleModel : applicationModel.getPubModuleModels()) {
+            ServiceRepository repository = moduleModel.getServiceRepository();
+            if (!repository.getExportedServices().isEmpty()) {
+                GovernanceRuleRepository ruleRepository = moduleModel.getExtensionLoader(GovernanceRuleRepository.class).getDefaultExtension();
+                ServiceConfigurationListener listener = serviceConfigurationListeners.remove(serviceKey);
+                ruleRepository.removeListener(serviceKey + CONFIGURATORS_SUFFIX, listener);
+            }
+        }
+    }
+}
+
+private void logError(String message, Throwable throwable) {
+    logger.warn(INTERNAL_ERROR, message, "", throwable.getMessage(),

@@ -1,0 +1,33 @@
+    protected final void fastPathOrderedEmitMax(U value, boolean delayError, Disposable dispose) {
+        final Subscriber<? super V> s = downstream;
+        final SimplePlainQueue<U> q = queue;
+
+        if (fastEnter()) {
+            long r = requested.get();
+            if (r != 0L) {
+                if (q.isEmpty()) {
+                    if (accept(s, value)) {
+                        if (r != Long.MAX_VALUE) {
+                            produced(1);
+                        }
+                    }
+                    if (leave(-1) == 0) {
+                        return;
+                    }
+                } else {
+                    q.offer(value);
+                }
+            } else {
+                cancelled = true;
+                dispose.dispose();
+                s.onError(MissingBackpressureException.createDefault());
+                return;
+            }
+        } else {
+            q.offer(value);
+            if (!enter()) {
+                return;
+            }
+        }
+        QueueDrainHelper.drainMaxLoop(q, s, delayError, dispose, this);
+    }

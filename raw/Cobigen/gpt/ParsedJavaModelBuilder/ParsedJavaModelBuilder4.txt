@@ -1,0 +1,51 @@
+private void extractAnnotationParametersAndValuesRecursively(Map<String, Object> annotationsMap, List<JavaAnnotation> annotations) {
+    for (JavaAnnotation annotation : annotations) {
+        Map<String, Object> annotationParameters = new HashMap<>();
+        annotationsMap.put(annotation.getType().getCanonicalName().replaceAll("\\.", "_"), annotationParameters);
+
+        for (String propertyName : annotation.getPropertyMap().keySet()) {
+            Object value = annotation.getNamedParameter(propertyName);
+            switch (getType(value)) {
+                case ENUM_VALUES:
+                    annotationParameters.put(propertyName, extractEnumValues((Enum<?>[]) value));
+                    break;
+                case ANNOTATION_PARAMETERS:
+                    List<Map<String, Object>> recursiveAnnotationList = new LinkedList<>();
+                    annotationParameters.put(propertyName, recursiveAnnotationList);
+                    for (JavaAnnotation a : (List<JavaAnnotation>) value) {
+                        Map<String, Object> annotationParameterParameters = new HashMap<>();
+                        extractAnnotationParametersAndValuesRecursively(annotationParameterParameters, Collections.singletonList(a));
+                        recursiveAnnotationList.add(annotationParameterParameters);
+                    }
+                    break;
+                default:
+                    annotationParameters.put(propertyName, value);
+                    break;
+            }
+        }
+    }
+}
+
+private List<String> extractEnumValues(Enum<?>[] values) {
+    List<String> enumValues = new LinkedList<>();
+    for (Enum<?> e : values) {
+        enumValues.add(e.name());
+    }
+    return enumValues;
+}
+
+private AnnotationValue getType(Object value) {
+    if (value instanceof Enum<?>[]) {
+        return AnnotationValue.ENUM_VALUES;
+    } else if (value instanceof List<?> && !((List<?>) value).isEmpty() && ((List<?>) value).get(0) instanceof JavaAnnotation) {
+        return AnnotationValue.ANNOTATION_PARAMETERS;
+    } else {
+        return AnnotationValue.DEFAULT;
+    }
+}
+
+private enum AnnotationValue {
+    ENUM_VALUES,
+    ANNOTATION_PARAMETERS,
+    DEFAULT
+}

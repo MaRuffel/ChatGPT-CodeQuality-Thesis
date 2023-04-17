@@ -1,0 +1,17 @@
+public static List<Anchor> joinKeySetsRetainOrder(Map<Anchor, String> base, Map<Anchor, String> patch) {
+    List<Anchor> joinedList = new ArrayList<>();
+    if (base == null || patch == null) {
+        return joinedList;
+    }
+
+    Map<Anchor, String> mergedMap = new LinkedHashMap<>(base);
+    patch.forEach((key, value) -> mergedMap.merge(key, value, (v1, v2) -> v2));
+
+    mergedMap.keySet().forEach(key -> {
+        if (!joinedList.contains(key)) {
+            joinedList.add(key);
+        }
+    });
+
+    return joinedList;
+}

@@ -1,0 +1,70 @@
+void drain() {
+    if (getAndIncrement() != 0) {
+        return;
+    }
+
+    int missed = 1;
+    long emittedCount = emitted;
+    Subscriber<? super C> subscriber = downstream;
+    SpscLinkedArrayQueue<C> queue = queue;
+
+    while (true) {
+        long requestedCount = requested.get();
+        while (emittedCount != requestedCount) {
+            if (cancelled) {
+                clearQueue(queue);
+                return;
+            }
+
+            boolean isDone = done;
+            if (isDone && errors.get() != null) {
+                clearQueue(queue);
+                errors.tryTerminateConsumer(subscriber);
+                return;
+            }
+
+            C value = queue.poll();
+            boolean isQueueEmpty = value == null;
+            if (isDone && isQueueEmpty) {
+                subscriber.onComplete();
+                return;
+            }
+
+            if (isQueueEmpty) {
+                break;
+            }
+
+            subscriber.onNext(value);
+            emittedCount++;
+        }
+
+        if (emittedCount == requestedCount) {
+            if (cancelled) {
+                clearQueue(queue);
+                return;
+            }
+
+            if (done) {
+                if (errors.get() != null) {
+                    clearQueue(queue);
+                    errors.tryTerminateConsumer(subscriber);
+                    return;
+                } else if (queue.isEmpty()) {
+                    subscriber.onComplete();
+                    return;
+                }
+            }
+        }
+
+        emitted = emittedCount;
+        missed = addAndGet(-missed);
+        if (missed == 0) {
+            break;
+        }
+    }
+}
+
+private void clearQueue(SpscLinkedArrayQueue<C> queue) {
+    queue.clear();
+}
+

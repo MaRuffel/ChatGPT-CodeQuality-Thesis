@@ -1,0 +1,86 @@
+Use Java 8 Streams and Lambdas
+Instead of using a traditional for loop, you can use Java 8 Streams and Lambdas to simplify the code and make it more readable.
+
+For example, you can replace:
+
+java
+Copy code
+for (com.devonfw.cobigen.impl.config.entity.io.Template t : templatesNode.getTemplate()) {
+    // ...
+}
+with:
+
+java
+Copy code
+templatesNode.getTemplate().stream().forEach(t -> {
+    // ...
+});
+Use try-with-resources for handling resources
+You can use try-with-resources to automatically close resources such as the TemplatePath object that is created in the loop.
+
+For example, you can replace:
+
+java
+Copy code
+TemplatePath child = this.rootTemplateFolder.navigate(t.getTemplateFile());
+if ((child == null) || (child.isFolder())) {
+    // ...
+}
+Template template = createTemplate((TemplateFile) child, t.getName(), t.getDestinationPath(),
+    t.getMergeStrategy(), t.getTargetCharset(), null);
+with:
+
+java
+Copy code
+try (TemplatePath child = this.rootTemplateFolder.navigate(t.getTemplateFile())) {
+    if ((child == null) || (child.isFolder())) {
+        // ...
+    }
+    Template template = createTemplate((TemplateFile) child, t.getName(), t.getDestinationPath(),
+        t.getMergeStrategy(), t.getTargetCharset(), null);
+    templates.put(t.getName(), template);
+} catch (IOException e) {
+    // handle exception
+}
+Use Set#contains instead of Map#get
+Instead of using templates.get(t.getName()) != null to check if a key exists in the map, you can use templates.containsKey(t.getName()) which is more concise and efficient.
+
+Simplify the code by removing unnecessary checks
+Some checks in the code are unnecessary or can be simplified.
+
+For example, the check for templatesNode != null can be removed because templatesNode.getTemplate() will return an empty list if templatesNode is null.
+
+Similarly, the check for scans != null is unnecessary because the for loop will simply do nothing if scans is null.
+
+Remove unnecessary local variables
+The observedExtensionNames set can be removed and its functionality can be combined with the existing templates map. This eliminates the need for the observedExtensionNames.contains(ext.getRef()) check and makes the code more concise.
+
+Here is the refactored code:
+
+java
+Copy code
+public Map<String, Template> loadTemplates(Trigger trigger)
+        throws UnknownExpressionException, UnknownContextVariableException, InvalidConfigurationException {
+
+    Map<String, Template> templates = new HashMap<>();
+
+    this.configNode.getTemplates().getTemplate().stream().forEach(t -> {
+        try (TemplatePath child = this.rootTemplateFolder.navigate(t.getTemplateFile())) {
+            if ((child == null) || (child.isFolder())) {
+                throw new InvalidConfigurationException(this.configFilePath.toUri().toString(),
+                        "no template file found for '" + t.getTemplateFile() + "'");
+            }
+            Template template = createTemplate((TemplateFile) child, t.getName(), t.getDestinationPath(),
+                    t.getMergeStrategy(), t.getTargetCharset(), null);
+            templates.put(t.getName(), template);
+        } catch (IOException e) {
+            throw new InvalidConfigurationException(this.configFilePath.toUri().toString(),
+                    "Failed to load template file for '" + t.getTemplateFile() + "'", e);
+        }
+    });
+
+    this.configNode.getTemplateScans().getTemplateScan().forEach(scan -> {
+        scanTemplates(scan, templates, trigger);
+    });
+
+    if (this.configNode.getTemplates() != null && this.configNode.getTemplates().getTemplateExtension

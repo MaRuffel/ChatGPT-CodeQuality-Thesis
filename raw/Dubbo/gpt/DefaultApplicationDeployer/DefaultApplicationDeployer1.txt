@@ -1,0 +1,40 @@
+private DeployState calculateApplicationDeployState() {
+    int numPending = 0, numStarting = 0, numStarted = 0, numStopping = 0, numStopped = 0, numFailed = 0;
+    for (ModuleModel module : applicationModel.getModuleModels()) {
+        ModuleState state = module.getDeployer().getState();
+        switch (state) {
+            case PENDING:
+                numPending++;
+                break;
+            case STARTING:
+                numStarting++;
+                break;
+            case STARTED:
+                numStarted++;
+                break;
+            case STOPPING:
+                numStopping++;
+                break;
+            case STOPPED:
+                numStopped++;
+                break;
+            case FAILED:
+                numFailed++;
+                break;
+        }
+    }
+
+    if (numFailed > 0) {
+        return DeployState.FAILED;
+    } else if (numStarted == applicationModel.getModuleModels().size()) {
+        return DeployState.STARTED;
+    } else if (numStarting > 0) {
+        return DeployState.STARTING;
+    } else if (numPending > 0) {
+        return DeployState.PENDING;
+    } else if (numStopping > 0) {
+        return DeployState.STOPPING;
+    } else {
+        return DeployState.STOPPED;
+    }
+}

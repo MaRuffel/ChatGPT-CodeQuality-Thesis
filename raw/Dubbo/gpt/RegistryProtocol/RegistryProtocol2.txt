@@ -1,0 +1,73 @@
+@Override
+public void unexport() {
+    String cacheKey = getCacheKey(this.originInvoker);
+    bounds.remove(cacheKey);
+
+    // Unregister from the registry
+    Registry registry = RegistryProtocol.this.getRegistry(getRegistryUrl(originInvoker));
+    unregisterFromRegistry(registry);
+
+    // Unsubscribe from configuration changes
+    unsubscribeFromConfigurationChanges();
+
+    // Schedule the exporter to be unexported after a timeout
+    int timeout = DEFAULT_SERVER_SHUTDOWN_TIMEOUT;
+    if (subscribeUrl != null) {
+        timeout = ConfigurationUtils.getServerShutdownTimeout(subscribeUrl.getScopeModel());
+    }
+    scheduleExporterUnexport(timeout);
+}
+
+private void unregisterFromRegistry(Registry registry) {
+    try (CloseableRegistryConnection registryConnection = new CloseableRegistryConnection(registry)) {
+        registryConnection.unregister(registerUrl);
+        if (subscribeUrl != null) {
+            unsubscribeFromRegistry(registryConnection);
+        }
+    } catch (Exception e) {
+        logger.warn(INTERNAL_ERROR, "Failed to unregister from registry", e);
+    }
+}
+
+private void unsubscribeFromRegistry(CloseableRegistryConnection registryConnection) {
+    Map<URL, Set<NotifyListener>> overrideListeners = getProviderConfigurationListener(subscribeUrl).getOverrideListeners();
+    Set<NotifyListener> listeners = overrideListeners.get(subscribeUrl);
+    if (listeners != null) {
+        if (listeners.remove(notifyListener)) {
+            if (!registryConnection.isServiceDiscovery()) {
+                registryConnection.unsubscribe(subscribeUrl, notifyListener);
+            }
+            removeServiceConfigurationListener(subscribeUrl.getServiceKey());
+        }
+        if (listeners.isEmpty()) {
+            overrideListeners.remove(subscribeUrl);
+        }
+    }
+}
+
+private void removeServiceConfigurationListener(String serviceKey) {
+    ApplicationModel applicationModel = getApplicationModel(registerUrl.getScopeModel());
+    if (applicationModel.getModelEnvironment().getConfiguration().convert(Boolean.class, ENABLE_CONFIGURATION_LISTEN, true)) {
+        for (ModuleModel moduleModel : applicationModel.getPubModuleModels()) {
+            if (moduleModel.getServiceRepository().getExportedServices().size() > 0) {
+                GovernanceRuleRepository ruleRepository = moduleModel.getExtensionLoader(GovernanceRuleRepository.class).getDefaultExtension();
+                ruleRepository.removeListener(subscribeUrl.getServiceKey() + CONFIGURATORS_SUFFIX, serviceConfigurationListeners.remove(serviceKey));
+            }
+        }
+    }
+}
+
+private void unsubscribeFromConfigurationChanges() {
+    if (subscribeUrl != null) {
+        unsubscribeFromRegistry(getRegistryConnection(subscribeUrl));
+    }
+}
+
+private CloseableRegistryConnection getRegistryConnection(URL url) {
+    Registry registry = RegistryProtocol.this.getRegistry(url);
+    return new CloseableRegistryConnection(registry);
+}
+
+private void scheduleExporterUnexport(int timeout) {
+    executor.schedule(() -> {
+       

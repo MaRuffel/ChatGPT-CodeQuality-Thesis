@@ -1,0 +1,56 @@
+default Page<OrderEntity> findOrders(OrderSearchCriteriaTo criteria) {
+
+    if (criteria == null) {
+        throw new IllegalArgumentException("Search criteria cannot be null");
+    }
+
+    Long bookingId = criteria.getBookingId();
+    Long invitedGuestId = criteria.getInvitedGuestId();
+    String hostToken = criteria.getHostToken();
+    String email = criteria.getEmail();
+    String bookingToken = criteria.getBookingToken();
+
+    if (bookingId == null && invitedGuestId == null && hostToken == null && email == null && bookingToken == null) {
+        throw new IllegalArgumentException("At least one search criteria must be specified");
+    }
+
+    JPAQuery<OrderEntity> query = newDslQuery(newDslAlias());
+
+    bookingIdIfPresent(query, bookingId);
+    invitedGuestIdIfPresent(query, invitedGuestId);
+    hostTokenIfPresent(query, hostToken);
+    emailIfPresent(query, email);
+    bookingTokenIfPresent(query, bookingToken);
+
+    return QueryUtil.get().findPaginated(criteria.getPageable(), query, true);
+}
+
+private void bookingIdIfPresent(JPAQuery<OrderEntity> query, Long bookingId) {
+    if (bookingId != null) {
+        query.where(Alias.$(Alias.orderAlias.getBooking().getId()).eq(bookingId));
+    }
+}
+
+private void invitedGuestIdIfPresent(JPAQuery<OrderEntity> query, Long invitedGuestId) {
+    if (invitedGuestId != null) {
+        query.where(Alias.$(Alias.orderAlias.getInvitedGuest().getId()).eq(invitedGuestId));
+    }
+}
+
+private void hostTokenIfPresent(JPAQuery<OrderEntity> query, String hostToken) {
+    if (hostToken != null) {
+        query.where(Alias.$(Alias.orderAlias.getBooking().getBookingToken())::equalsIgnoreCase(hostToken));
+    }
+}
+
+private void emailIfPresent(JPAQuery<OrderEntity> query, String email) {
+    if (email != null) {
+        query.where(Alias.$(Alias.orderAlias.getBooking().getEmail()).toLowerCase()::likeIgnoreCase, "%" + email.toLowerCase() + "%");
+    }
+}
+
+private void bookingTokenIfPresent(JPAQuery<OrderEntity> query, String bookingToken) {
+    if (bookingToken != null) {
+        query.where(Alias.$(Alias.orderAlias.getBooking().getBookingToken())::equalsIgnoreCase, bookingToken);
+    }
+}

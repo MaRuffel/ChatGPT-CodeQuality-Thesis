@@ -1,0 +1,37 @@
+        void tryEmitScalar(U value) {
+            if (get() == 0 && compareAndSet(0, 1)) {
+                long r = requested.get();
+                SimpleQueue<U> q = queue;
+                if (r != 0L && (q == null || q.isEmpty())) {
+                    downstream.onNext(value);
+                    if (r != Long.MAX_VALUE) {
+                        requested.decrementAndGet();
+                    }
+                    if (maxConcurrency != Integer.MAX_VALUE
+                            && !cancelled && ++scalarEmitted == scalarLimit) {
+                        scalarEmitted = 0;
+                        upstream.request(scalarLimit);
+                    }
+                } else {
+                    if (q == null) {
+                        q = getMainQueue();
+                    }
+                    if (!q.offer(value)) {
+                        onError(new QueueOverflowException());
+                    }
+                }
+                if (decrementAndGet() == 0) {
+                    return;
+                }
+            } else {
+                SimpleQueue<U> q = getMainQueue();
+                if (!q.offer(value)) {
+                    onError(new QueueOverflowException());
+                    return;
+                }
+                if (getAndIncrement() != 0) {
+                    return;
+                }
+            }
+            drainLoop();
+        }

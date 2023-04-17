@@ -1,0 +1,31 @@
+/**
+ * Sets the multicast interface for the given socket to the first valid interface that is reachable.
+ *
+ * @param socket the socket to set the interface for
+ * @param preferIpv6 true to prefer IPv6 interfaces, false to prefer IPv4 interfaces
+ * @throws IOException if an I/O error occurs while setting the interface
+ */
+public static void setMulticastInterface(MulticastSocket socket, boolean preferIpv6) throws IOException {
+    for (NetworkInterface iface : NetworkInterface.getNetworkInterfaces()) {
+        if (!iface.isUp() || iface.isLoopback()) {
+            continue;
+        }
+        for (InetAddress address : Collections.list(iface.getInetAddresses())) {
+            if ((preferIpv6 && address instanceof Inet6Address)
+                    || (!preferIpv6 && address instanceof Inet4Address)) {
+                if (isAddressReachable(address)) {
+                    socket.setInterface(address);
+                    return;
+                }
+            }
+        }
+    }
+}
+
+private static boolean isAddressReachable(InetAddress address) {
+    try {
+        return address.isReachable(1000);
+    } catch (IOException e) {
+        return false;
+    }
+}

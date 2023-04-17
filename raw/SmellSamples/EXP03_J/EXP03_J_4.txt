@@ -1,0 +1,19 @@
+public class Sut {
+    public int compare(int i, int j) {
+        return Integer.compare(i, j);
+    }
+
+    public boolean isSame(Integer i, Integer j) {
+        return i.equals(j);
+    }
+
+    public static void main(String[] args) {
+        Boolean b1 = Boolean.valueOf("true");
+        Boolean b2 = Boolean.valueOf("true");
+
+        if(b1.equals(b2)) {
+            System.out.println("This line will be printed");
+        }
+    }
+}
+Note that I also added a main method to the code, so it can be run as a standalone program.

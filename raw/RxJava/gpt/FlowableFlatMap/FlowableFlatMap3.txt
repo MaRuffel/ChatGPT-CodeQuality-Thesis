@@ -1,0 +1,67 @@
+void tryEmitScalar(U value) throws QueueOverflowException {
+    // Check if there are any outstanding requests for emissions.
+    if (get() != 0) {
+        offerToMainQueue(value);
+        if (getAndIncrement() == 0) {
+            drainLoop();
+        }
+        return;
+    }
+
+    // Try to acquire a permit to emit a scalar value.
+    if (compareAndSet(0, 1)) {
+        try {
+            // Check if there are any outstanding requests for emissions.
+            long requestedCount = requested.get();
+            if (requestedCount != 0L) {
+                SimpleQueue<U> queue = this.queue;
+                if (queue == null || queue.isEmpty()) {
+                    // Emit the scalar value to the downstream consumer.
+                    downstream.onNext(value);
+                    if (requestedCount != Long.MAX_VALUE) {
+                        requested.decrementAndGet();
+                    }
+
+                    // Check if the maximum concurrency has been reached.
+                    if (maxConcurrency != Integer.MAX_VALUE && !cancelled) {
+                        if (++scalarEmitted == scalarLimit) {
+                            scalarEmitted = 0;
+                            upstream.request(scalarLimit);
+                        }
+                    }
+                } else {
+                    // Offer the scalar value to the main queue.
+                    offerToMainQueue(value);
+                }
+            } else {
+                // Offer the scalar value to the main queue.
+                offerToMainQueue(value);
+            }
+        } finally {
+            // Release the permit to emit.
+            if (decrementAndGet() != 0) {
+                drainLoop();
+            }
+        }
+    } else {
+        // Failed to acquire the permit to emit, offer the scalar value to the main queue.
+        offerToMainQueue(value);
+        if (getAndIncrement() == 0) {
+            drainLoop();
+        }
+    }
+}
+
+private void offerToMainQueue(U value) throws QueueOverflowException {
+    Objects.requireNonNull(value, "Value cannot be null");
+    SimpleQueue<U> queue = getMainQueue();
+    if (!queue.offer(value)) {
+        throw new QueueOverflowException("Queue overflowed");
+    }
+}
+
+private SimpleQueue<U> getMainQueue() {
+    return Objects.requireNonNull(queue, "Main queue cannot be null");
+}
+
+Note: The code assumes that downstream and upstream are properly initialized and closed outside of this method, and that requested and cancelled are valid state variables for the given context.

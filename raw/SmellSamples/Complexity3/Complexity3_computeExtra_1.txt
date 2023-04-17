@@ -1,0 +1,61 @@
+The given code uses a large number of nested if-else statements to return a value based on the input argument. This can be improved in a few ways:
+
+Use a switch statement instead of nested if-else statements:
+Using a switch statement can make the code more readable and easier to understand. The switch statement can be used to compare the input argument with a set of predefined cases and execute the corresponding block of code.
+
+Here is an example of how the code can be written using a switch statement:
+
+kotlin
+Copy code
+public int computeExtra(int a) {
+    switch (a) {
+        case 1:
+            return 234;
+        case 2:
+            return 543;
+        case 3:
+            return 23;
+        case 4:
+            return 567;
+        case 6:
+            return 121;
+        case 7:
+            return 32;
+        case 8:
+            return 42;
+        case 9:
+        case 10:
+            return 2321;
+        case 11:
+            return 750;
+        case 12:
+            return 765;
+        case 13:
+            return 345;
+        case 14:
+        case 15:
+        case 16:
+            return 2321;
+        case 17:
+            return 5445;
+        default:
+            return 0;
+    }
+}
+Use a lookup table:
+Another way to improve the code is to use a lookup table. Instead of checking each case individually, we can store the values in an array or a Map and use the input argument as an index to retrieve the corresponding value.
+
+Here is an example of how the code can be written using a lookup table:
+
+java
+Copy code
+private static final int[] EXTRA_VALUES = {0, 234, 543, 23, 567, 0, 121, 32, 42, 2321, 750, 765, 345, 2321, 2321, 2321, 5445};
+
+public int computeExtra(int a) {
+    if (a >= 1 && a < EXTRA_VALUES.length) {
+        return EXTRA_VALUES[a];
+    } else {
+        return 0;
+    }
+}
+In this example, we define a static final array EXTRA_VALUES that stores the values corresponding to each input argument. We then use the input argument as an index to retrieve the corresponding value from the array. We also add a check to make sure that the input argument is within the bounds of the array to avoid an IndexOutOfBoundsException.

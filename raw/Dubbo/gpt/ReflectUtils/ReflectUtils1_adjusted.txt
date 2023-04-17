@@ -1,0 +1,79 @@
+    private static final char ARRAY_SYMBOL = '[';
+    private static final char OBJECT_SYMBOL = 'L';
+    private static final char OBJECT_SYMBOL_END = ';';
+    private static final int ARRAY_DIMENSION_SIZE = 2;
+    private static Class<?> name2class(ClassLoader classLoader, String name) throws ClassNotFoundException {
+        int arrayDimension = 0;
+        int index = name.indexOf('[');
+        if (index > 0) {
+            arrayDimension = (name.length() - index) / ARRAY_DIMENSION_SIZE;
+            name = name.substring(0, index);
+        }
+
+        if (arrayDimension > 0) {
+            StringBuilder sb = new StringBuilder();
+            while (arrayDimension-- > 0) {
+                sb.append(ARRAY_SYMBOL);
+            }
+
+            switch (name) {
+                case "void":
+                    sb.append(JVM_VOID);
+                    break;
+                case "boolean":
+                    sb.append(JVM_BOOLEAN);
+                    break;
+                case "byte":
+                    sb.append(JVM_BYTE);
+                    break;
+                case "char":
+                    sb.append(JVM_CHAR);
+                    break;
+                case "double":
+                    sb.append(JVM_DOUBLE);
+                    break;
+                case "float":
+                    sb.append(JVM_FLOAT);
+                    break;
+                case "int":
+                    sb.append(JVM_INT);
+                    break;
+                case "long":
+                    sb.append(JVM_LONG);
+                    break;
+                case "short":
+                    sb.append(JVM_SHORT);
+                    break;
+                default:
+                    sb.append(OBJECT_SYMBOL).append(name).append(OBJECT_SYMBOL_END);
+            }
+            name = sb.toString();
+        } else {
+            switch (name) {
+                case "void":
+                    return void.class;
+                case "boolean":
+                    return boolean.class;
+                case "byte":
+                    return byte.class;
+                case "char":
+                    return char.class;
+                case "double":
+                    return double.class;
+                case "float":
+                    return float.class;
+                case "int":
+                    return int.class;
+                case "long":
+                    return long.class;
+                case "short":
+                    return short.class;
+            }
+        }
+
+        if (classLoader == null) {
+            classLoader = ClassUtils.getClassLoader();
+        }
+        
+        return Class.forName(name, true, classLoader);
+    }

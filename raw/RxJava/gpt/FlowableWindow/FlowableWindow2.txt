@@ -1,0 +1,69 @@
+void drain() {
+    if (wip.getAndIncrement() != 0) {
+        return;
+    }
+
+    final Subscriber<? super Flowable<T>> subscriber = downstream;
+    final SpscLinkedArrayQueue<UnicastProcessor<T>> queue = this.queue;
+
+    int missed = 1;
+
+    outerLoop:
+    while (true) {
+        if (cancelled) {
+            UnicastProcessor<T> up;
+            while ((up = queue.poll()) != null) {
+                up.onComplete();
+            }
+        } else {
+            long requestedCount = requested.get();
+            long emittedCount = 0;
+
+            while (emittedCount != requestedCount) {
+                boolean isDone = done;
+                UnicastProcessor<T> unicastProcessor = queue.poll();
+                boolean isQueueEmpty = unicastProcessor == null;
+
+                if (cancelled) {
+                    continue outerLoop;
+                }
+
+                if (checkTerminated(isDone, isQueueEmpty, subscriber, queue)) {
+                    return;
+                }
+
+                if (isQueueEmpty) {
+                    break;
+                }
+
+                FlowableWindowSubscribeIntercept<T> intercept = new FlowableWindowSubscribeIntercept<>(unicastProcessor);
+                subscriber.onNext(intercept);
+
+                if (intercept.tryAbandon()) {
+                    unicastProcessor.onComplete();
+                }
+
+                emittedCount++;
+            }
+
+            if (emittedCount == requestedCount) {
+                if (cancelled) {
+                    continue;
+                }
+                if (checkTerminated(done, queue.isEmpty(), subscriber, queue)) {
+                    return;
+                }
+            }
+
+            if (emittedCount != 0L && requestedCount != Long.MAX_VALUE) {
+                requested.addAndGet(-emittedCount);
+            }
+        }
+
+        missed = wip.addAndGet(-missed);
+
+        if (missed == 0) {
+            break;
+        }
+    }
+}

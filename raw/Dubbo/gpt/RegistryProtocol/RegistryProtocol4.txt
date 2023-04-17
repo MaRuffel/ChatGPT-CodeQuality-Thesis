@@ -1,0 +1,51 @@
+@Override
+public void unexport() {
+    String key = getCacheKey(this.originInvoker);
+    bounds.remove(key);
+
+    Registry registry = RegistryProtocol.this.getRegistry(getRegistryUrl(originInvoker));
+    unregisterFromRegistry(registry);
+
+    int timeout = Optional.ofNullable(subscribeUrl)
+            .map(ConfigurationUtils::getServerShutdownTimeout)
+            .orElse(DEFAULT_SERVER_SHUTDOWN_TIMEOUT);
+
+    executor.schedule(exporter::unexport, timeout, TimeUnit.MILLISECONDS);
+}
+
+private void unregisterFromRegistry(Registry registry) {
+    try {
+        registry.unregister(registerUrl);
+    } catch (Throwable t) {
+        logger.warn(INTERNAL_ERROR, "unknown error in registry module", "", t.getMessage(), t);
+    }
+
+    try {
+        if (subscribeUrl != null) {
+            Map<URL, Set<NotifyListener>> overrideListeners = getProviderConfigurationListener(subscribeUrl)
+                    .getOverrideListeners();
+            Set<NotifyListener> listeners = overrideListeners.get(subscribeUrl);
+            if (listeners != null && listeners.remove(notifyListener)) {
+                if (!registry.isServiceDiscovery()) {
+                    registry.unsubscribe(subscribeUrl, notifyListener);
+                }
+                ApplicationModel applicationModel = getApplicationModel(registerUrl.getScopeModel());
+                if (applicationModel.getModelEnvironment().getConfiguration()
+                        .convert(Boolean.class, ENABLE_CONFIGURATION_LISTEN, true)) {
+                    for (ModuleModel moduleModel : applicationModel.getPubModuleModels()) {
+                        if (!moduleModel.getServiceRepository().getExportedServices().isEmpty()) {
+                            moduleModel.getExtensionLoader(GovernanceRuleRepository.class).getDefaultExtension()
+                                    .removeListener(subscribeUrl.getServiceKey() + CONFIGURATORS_SUFFIX,
+                                            serviceConfigurationListeners.remove(subscribeUrl.getServiceKey()));
+                        }
+                    }
+                }
+                if (listeners.isEmpty()) {
+                    overrideListeners.remove(subscribeUrl);
+                }
+            }
+        }
+    } catch (Throwable t) {
+        logger.warn(INTERNAL_ERROR, "unknown error in registry module", "", t.getMessage(), t);
+    }
+}

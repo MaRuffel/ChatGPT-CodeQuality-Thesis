@@ -1,0 +1,32 @@
+  private OrderEntity getValidatedOrder(String token, OrderEntity orderEntity) {
+
+    // BOOKING VALIDATION
+    if (getOrderType(token) == BookingType.COMMON) {
+      BookingCto booking = getBookingbyToken(token);
+      if (booking == null) {
+        throw new NoBookingException();
+      }
+      List<OrderCto> currentOrders = getBookingOrders(booking.getBooking().getId());
+      if (!currentOrders.isEmpty()) {
+        throw new OrderAlreadyExistException();
+      }
+      orderEntity.setBookingId(booking.getBooking().getId());
+
+      // GUEST VALIDATION
+    } else if (getOrderType(token) == BookingType.INVITED) {
+
+      InvitedGuestEto guest = getInvitedGuestByToken(token);
+      if (guest == null) {
+        throw new NoInviteException();
+      }
+      List<OrderCto> currentGuestOrders = getInvitedGuestOrders(guest.getId());
+      if (!currentGuestOrders.isEmpty()) {
+        throw new OrderAlreadyExistException();
+      }
+      orderEntity.setBookingId(guest.getBookingId());
+      orderEntity.setInvitedGuestId(guest.getId());
+    }
+
+    return orderEntity;
+
+  }

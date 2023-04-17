@@ -1,0 +1,19 @@
+public static List<Anchor> joinKeySetsRetainOrder(Map<Anchor, String> base, Map<Anchor, String> patch) {
+    List<Anchor> joinedList = new ArrayList<>();
+    for (Anchor key : base.keySet()) {
+        if (!patch.containsKey(key)) {
+            joinedList.add(key);
+        }
+    }
+    for (Anchor key : patch.keySet()) {
+        if (!base.containsKey(key)) {
+            joinedList.add(key);
+        }
+    }
+    for (Anchor key : base.keySet()) {
+        if (patch.containsKey(key)) {
+            joinedList.add(key);
+        }
+    }
+    return joinedList;
+}

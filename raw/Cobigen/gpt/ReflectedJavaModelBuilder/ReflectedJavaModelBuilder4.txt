@@ -1,0 +1,50 @@
+private void extractAnnotationsRecursively(Map<String, Object> annotationsMap, Annotation[] annotations) {
+    for (Annotation annotation : annotations) {
+        Map<String, Object> annotationParameters = new HashMap<>();
+        annotationsMap.put(annotation.annotationType().getCanonicalName().replaceAll("\\.", "_"), annotationParameters);
+
+        Arrays.stream(annotation.annotationType().getMethods())
+              .filter(getter -> getter.getParameterTypes().length == 0 &&
+                                !getter.getName().equals("hashCode") &&
+                                !getter.getName().equals("annotationType") &&
+                                !getter.getName().equals("toString"))
+              .forEach(getter -> {
+                  try {
+                      Object annotationValue = getter.invoke(annotation);
+                      if (annotationValue instanceof Annotation[]) {
+                          List<Map<String, Object>> recursiveAnnotationList = new ArrayList<>();
+                          for (Annotation recursiveAnnotation : (Annotation[]) annotationValue) {
+                              Map<String, Object> recursiveAnnotationParameters = new HashMap<>();
+                              extractAnnotationsRecursively(recursiveAnnotationParameters, new Annotation[] { recursiveAnnotation });
+                              recursiveAnnotationList.add(recursiveAnnotationParameters);
+                          }
+                          annotationParameters.put(getter.getName(), recursiveAnnotationList);
+                      } else if (annotationValue instanceof Enum<?>[]) {
+                          List<String> enumValues = new ArrayList<>();
+                          for (Enum<?> enumValue : ((Enum<?>[]) annotationValue)) {
+                              enumValues.add(enumValue.name());
+                          }
+                          annotationParameters.put(getter.getName(), enumValues);
+                      } else if (annotationValue instanceof Object[]) {
+                          annotationParameters.put(getter.getName(), Arrays.asList((Object[]) annotationValue));
+                      } else if (annotationValue instanceof Enum<?>) {
+                          annotationParameters.put(getter.getName(), ((Enum<?>) annotationValue).name());
+                      } else if (annotationValue instanceof Byte ||
+                                 annotationValue instanceof Short ||
+                                 annotationValue instanceof Integer ||
+                                 annotationValue instanceof Long ||
+                                 annotationValue instanceof Float ||
+                                 annotationValue instanceof Double ||
+                                 annotationValue instanceof Boolean ||
+                                 annotationValue instanceof Character) {
+                          annotationParameters.put(getter.getName(), annotationValue.toString());
+                      } else {
+                          annotationParameters.put(getter.getName(), annotationValue != null ? annotationValue.toString() : null);
+                      }
+                  } catch (ReflectiveOperationException e) {
+                      LOG.error("An error occurred while retrieving value '{}' from annotation '{}'.", getter.getName(),
+                                annotation.getClass(), e);
+                  }
+              });
+    }
+}

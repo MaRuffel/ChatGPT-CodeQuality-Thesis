@@ -1,0 +1,49 @@
+  @Override
+  public ModelWriter writeAnnotation(JavaAnnotation annotation) {
+    IndentBuffer sb = this.buffer;
+    sb.write('@');
+    sb.write(annotation.getType().getGenericValue());
+    if (!annotation.getPropertyMap().isEmpty()) {
+      sb.indent();
+      sb.write('(');
+      Set<Map.Entry<String, AnnotationValue>> annotationEntrySet = annotation.getPropertyMap().entrySet();
+      boolean first = true;
+      for (Map.Entry<String, AnnotationValue> entry : annotationEntrySet) {
+        if (!(annotationEntrySet.size() == 1 && "value".equals(entry.getKey()))) {
+          if (!first) {
+            sb.write(',');
+            sb.newline();
+          }
+          sb.write(entry.getKey());
+          sb.write('=');
+        }
+        Object value = entry.getValue().getParameterValue();
+        if (value instanceof JavaAnnotation) {
+          writeAnnotation((JavaAnnotation) value);
+        } else if (value instanceof Collection<?>) {
+          Collection<?> annotations = (Collection<?>) value;
+          sb.write('{');
+          boolean firstAnnotation = true;
+          for (Object annotationValue : annotations) {
+            if (!firstAnnotation) {
+              sb.write(", ");
+            }
+            if (annotationValue instanceof JavaAnnotation) {
+              writeAnnotation((JavaAnnotation) annotationValue);
+            } else {
+              sb.write(annotationValue.toString());
+            }
+            firstAnnotation = false;
+          }
+          sb.write('}');
+        } else {
+          sb.write(value.toString());
+        }
+        first = false;
+      }
+      sb.write(')');
+      sb.deindent();
+    }
+    sb.newline();
+    return this;
+  }

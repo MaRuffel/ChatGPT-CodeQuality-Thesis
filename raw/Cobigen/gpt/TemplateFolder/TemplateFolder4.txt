@@ -1,0 +1,23 @@
+public TemplatePath navigate(String relativePath) {
+    TemplateFolder folder = this;
+    Path path = Paths.get(relativePath).normalize();
+    for (Path component : path) {
+        String filename = component.toString();
+        if (filename.equals("..")) {
+            TemplateFolder parent = folder.getParent();
+            if (parent != null) {
+                folder = parent;
+            }
+        } else if (!filename.equals(".")) {
+            TemplatePath child = folder.getChild(filename);
+            if (component.equals(path.getFileName())) {
+                return child;
+            } else if ((child == null) || child.isFile()) {
+                return null;
+            } else {
+                folder = (TemplateFolder) child;
+            }
+        }
+    }
+    return folder;
+}

@@ -1,0 +1,32 @@
+Here are some improvements that can be made to the code:
+
+compare method: Instead of using the ternary operator, you can use the Integer.compare() method which compares two integer values and returns -1, 0 or 1 depending on whether the first value is less than, equal to, or greater than the second value.
+Here's the improved compare method:
+
+vbnet
+Copy code
+public int compare(Integer i, Integer j) {
+    return Integer.compare(i, j);
+}
+isSame method: Instead of using the == operator to compare two Integer objects, you should use the equals() method, as == compares object references and not their actual values.
+Here's the improved isSame method:
+
+vbnet
+Copy code
+public boolean isSame(Integer i, Integer j) {
+    return i.equals(j);
+}
+doEqual method: Instead of creating new Boolean objects using the constructor, you can simply use the Boolean literals true and false. Also, to compare Boolean objects, you can use the equals() method instead of the == operator.
+Here's the improved doEqual method:
+
+csharp
+Copy code
+public void doEqual() {
+    Boolean b1 = true;
+    Boolean b2 = true;
+
+    if(b1.equals(b2)) {
+        System.out.println("Printed");
+    }
+}
+With these improvements, the code is more readable and less error-prone.

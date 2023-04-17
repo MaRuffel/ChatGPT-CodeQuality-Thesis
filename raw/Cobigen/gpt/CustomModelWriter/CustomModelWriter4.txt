@@ -1,0 +1,74 @@
+@Override
+public ModelWriter writeAnnotation(JavaAnnotation annotation) {
+    StringBuilder sb = new StringBuilder();
+    sb.append('@').append(annotation.getType().getGenericValue());
+    Map<String, AnnotationValue> propertyMap = annotation.getPropertyMap();
+    if (!propertyMap.isEmpty()) {
+        sb.append('(');
+        this.buffer.indent();
+        for (Map.Entry<String, AnnotationValue> entry : propertyMap.entrySet()) {
+            String key = entry.getKey();
+            AnnotationValue value = entry.getValue();
+            boolean isValueKey = key.equals("value");
+            if (!isValueKey || propertyMap.size() > 1) {
+                sb.append(key).append('=');
+            }
+            if (value.getParameterValue() instanceof JavaAnnotation) {
+                writeAnnotation((JavaAnnotation) value.getParameterValue(), sb);
+            } else if (value.getParameterValue() instanceof Collection<?>) {
+                Collection<?> annotations = (Collection<?>) value.getParameterValue();
+                sb.append('{');
+                boolean first = true;
+                for (Object a : annotations) {
+                    if (a instanceof JavaAnnotation) {
+                        if (!first) {
+                            sb.append(", ");
+                        }
+                        writeAnnotation((JavaAnnotation) a, sb);
+                    } else {
+                        if (!first) {
+                            sb.append(", ");
+                        }
+                        sb.append(a.toString());
+                    }
+                    first = false;
+                }
+                sb.append('}');
+            } else {
+                sb.append(value.toString());
+            }
+            if (entry.hasNext()) {
+                sb.append(',').append(this.buffer.newline());
+            }
+        }
+        sb.append(')');
+        this.buffer.deindent();
+    }
+    sb.append(this.buffer.newline());
+    this.buffer.write(sb.toString());
+    return this;
+}
+
+private void writeAnnotation(JavaAnnotation annotation, StringBuilder sb) {
+    sb.append('@').append(annotation.getType().getGenericValue());
+    Map<String, AnnotationValue> propertyMap = annotation.getPropertyMap();
+    if (!propertyMap.isEmpty()) {
+        sb.append('(');
+        for (Map.Entry<String, AnnotationValue> entry : propertyMap.entrySet()) {
+            String key = entry.getKey();
+            AnnotationValue value = entry.getValue();
+            boolean isValueKey = key.equals("value");
+            if (!isValueKey || propertyMap.size() > 1) {
+                sb.append(key).append('=');
+            }
+            if (value.getParameterValue() instanceof JavaAnnotation) {
+                writeAnnotation((JavaAnnotation) value.getParameterValue(), sb);
+            } else if (value.getParameterValue() instanceof Collection<?>) {
+                Collection<?> annotations = (Collection<?>) value.getParameterValue();
+                sb.append('{');
+                boolean first = true;
+                for (Object a : annotations) {
+                    if (a instanceof JavaAnnotation) {
+                        if (!first) {
+                            sb.append(", ");
+                        }

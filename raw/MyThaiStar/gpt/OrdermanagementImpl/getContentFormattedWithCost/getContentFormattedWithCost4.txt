@@ -1,0 +1,44 @@
+private String getContentFormattedWithCost(OrderEntity order) {
+    List<OrderLineEntity> orderLines;
+    BigDecimal finalPrice = BigDecimal.ZERO;
+
+    try (Connection conn = dataSource.getConnection()) {
+        orderLines = orderLineDao.findOrderLines(conn, order.getId());
+    } catch (SQLException e) {
+        throw new RuntimeException("Error fetching order lines for order " + order.getId(), e);
+    }
+
+    StringBuilder sb = new StringBuilder();
+    sb.append("\n");
+
+    for (OrderLineEntity orderLine : orderLines) {
+        DishCto dishCto = dishManagement.findDish(orderLine.getDishId());
+        List<IngredientEto> extras = dishCto.getExtras().stream().distinct().collect(Collectors.toList());
+
+        // dish name and quantity
+        sb.append(dishCto.getDish().getName()).append(", x").append(orderLine.getAmount());
+
+        // dish selected extras
+        BigDecimal linePrice = dishCto.getDish().getPrice().multiply(BigDecimal.valueOf(orderLine.getAmount()));
+        sb.append(". Extras: ");
+
+        for (Ingredient selectedExtra : orderLine.getExtras()) {
+            extras.stream().filter(extra -> extra.getId().equals(selectedExtra.getId()))
+                          .forEach(extra -> {
+                              sb.append(extra.getName()).append(",");
+                              linePrice = linePrice.add(extra.getPrice());
+                          });
+        }
+
+        // dish cost
+        sb.append(" ==>").append(". Dish cost: ").append(linePrice.toString());
+        sb.append("\n");
+
+        // increase the finalPrice of the order
+        finalPrice = finalPrice.add(linePrice);
+    }
+
+    sb.append("Total Order cost: ").append(finalPrice.toString());
+    return sb.toString();
+}
+Note that I assumed the use of a DataSource object to obtain a database connection. Also, I assumed that the OrderLineDao class has a method named "findOrderLines" that takes a Connection object and an order id, instead of just the order id.

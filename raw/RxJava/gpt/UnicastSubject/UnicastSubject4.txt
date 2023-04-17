@@ -1,0 +1,38 @@
+void drainNormal(Observer<? super T> observer) {
+    int missed = 1;
+    SimpleQueue<T> queue = this.queue;
+    boolean canBeError = true;
+    boolean isFailFast = !delayError;
+
+    while (true) {
+        if (disposed) {
+            downstream.lazySet(null);
+            queue.clear();
+            return;
+        }
+
+        if (done) {
+            if (isFailFast && canBeError && failedFast(queue, observer)) {
+                return;
+            }
+            T value = queue.poll();
+            if (value == null) {
+                errorOrComplete(observer);
+                return;
+            }
+            observer.onNext(value);
+        } else {
+            T value = queue.poll();
+            if (value == null) {
+                break;
+            }
+            observer.onNext(value);
+        }
+    }
+
+    missed = wip.addAndGet(-missed);
+    if (missed != 0) {
+        return;
+    }
+}
+Note that the code assumes that the dispose(), done, delayError, failedFast(), queue, errorOrComplete(), downstream, and wip variables are defined elsewhere in the code.

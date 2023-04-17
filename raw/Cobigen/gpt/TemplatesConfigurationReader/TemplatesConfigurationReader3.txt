@@ -1,0 +1,37 @@
+Use diamond operator to simplify instantiation of the templates Map.
+java
+Copy code
+Map<String, Template> templates = new HashMap<>();
+could be written as
+
+java
+Copy code
+Map<String, Template> templates = new HashMap<>();
+Extract repeated code to a separate method.
+The code inside the if (templatesNode != null) block and the code inside the if (templatesNode != null && templatesNode.getTemplateExtension() != null) block could be extracted to separate methods to reduce duplication.
+
+Use try-with-resources to close resources.
+If TemplatePath and TemplateFile implement java.lang.AutoCloseable, you could use the try-with-resources statement to automatically close them when they're no longer needed. For example:
+
+java
+Copy code
+try (TemplatePath child = this.rootTemplateFolder.navigate(t.getTemplateFile())) {
+    if ((child == null) || (child.isFolder())) {
+        throw new InvalidConfigurationException(this.configFilePath.toUri().toString(),
+            "no template file found for '" + t.getTemplateFile() + "'");
+    }
+    Template template = createTemplate((TemplateFile) child, t.getName(), t.getDestinationPath(),
+        t.getMergeStrategy(), t.getTargetCharset(), null);
+    templates.put(t.getName(), template);
+}
+Use the var keyword to simplify code.
+If you're using Java 10 or higher, you could use the var keyword to reduce some of the boilerplate code. For example:
+
+java
+Copy code
+List<TemplateScan> scans = templateScans.getTemplateScan();
+could be written as
+
+java
+Copy code
+var scans = templateScans.getTemplateScan();

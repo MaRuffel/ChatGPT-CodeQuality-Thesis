@@ -1,0 +1,38 @@
+@Override
+public final void request(long numItems) {
+    if (!SubscriptionHelper.validate(numItems)) {
+        return;
+    }
+
+    while (true) {
+        int state = get();
+        switch (state) {
+            case NO_REQUEST_NO_VALUE:
+                if (compareAndSet(NO_REQUEST_NO_VALUE, HAS_REQUEST_NO_VALUE)) {
+                    return;
+                }
+                break;
+
+            case NO_REQUEST_HAS_VALUE:
+                if (compareAndSet(NO_REQUEST_HAS_VALUE, HAS_REQUEST_HAS_VALUE)) {
+                    T valueToSend = value;
+                    if (valueToSend != null) {
+                        value = null;
+                        Subscriber<? super T> subscriber = downstream;
+                        subscriber.onNext(valueToSend);
+                        if (get() != CANCELLED) {
+                            subscriber.onComplete();
+                        }
+                    }
+                    return;
+                }
+                break;
+
+            default:
+                if ((state & ~NO_REQUEST_HAS_VALUE) != 0) {
+                    return;
+                }
+        }
+    }
+}
+Again, these are just suggestions and the optimal code changes will depend on the context and requirements of the code.

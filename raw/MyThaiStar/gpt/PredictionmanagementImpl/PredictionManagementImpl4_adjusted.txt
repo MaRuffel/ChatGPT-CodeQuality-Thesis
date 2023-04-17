@@ -1,0 +1,62 @@
+  public PredictionDataTo getNextWeekPrediction(PredictionSearchCriteriaTo searchCriteria) {
+
+    LOG.debug("Generating predictions for next week");
+
+    deleteOldForecastData();
+
+    addNewForecastData(searchCriteria);
+
+    List<PredictionDayData> predictionDayDataEtos = generatePredictions(searchCriteria);
+
+    PredictionDataTo predictionDataTo = new PredictionDataTo();
+    predictionDataTo.setData(predictionDayDataEtos);
+
+    return predictionDataTo;
+  }
+
+  private void deleteOldForecastData() {
+    this.predictionDayDataRepository.deletePredictionForecastData();
+  }
+
+  private void addNewForecastData(PredictionSearchCriteriaTo searchCriteria) {
+    List<Double> temperatures = searchCriteria.getTemperatures();
+    List<String> holidays = searchCriteria.getHolidays();
+
+    for (int temperatureIndex = 0; temperatureIndex < temperatures.size(); temperatureIndex++) {
+      double temperature = temperatures.get(temperatureIndex);
+      int holiday = holidays.get(temperatureIndex) == null ? 0 : 1;
+
+      PredictionForecastDataEntity forecastData = new PredictionForecastDataEntity();
+      forecastData.setTimestamp(temperatureIndex + 1);
+      forecastData.setTemperature(temperature);
+      forecastData.setHoliday(holiday);
+
+      this.entityManager.persist(forecastData);
+    }
+  }
+
+  private List<PredictionDayData>  generatePredictions(PredictionSearchCriteriaTo searchCriteria) {
+    List<DishEntity> dishes = this.dishRepository.findAll();
+
+    for (DishEntity dish : dishes) {
+      train(dish, searchCriteria.getStartBookingdate());
+    }
+
+    for (DishEntity dish : dishes) {
+      generatePredictionFor(dish);
+    }
+
+    List<PredictionDayData>  predictionDayDataEtos = new ArrayList<>();
+
+    for (PredictionDayDataEntity entity : this.predictionDayDataRepository.getPrediction(searchCriteria)) {
+      PredictionDayDataEto predictionDayDataEto = new PredictionDayDataEto();
+      predictionDayDataEto.setId(entity.getId());
+      predictionDayDataEto.setDishId(entity.getDishId());
+      predictionDayDataEto.setDishName(entity.getDishName());
+      predictionDayDataEto.setTimestamp(entity.getTimestamp());
+      predictionDayDataEto.setForecast(entity.getForecast());
+      predictionDayDataEtos.add(predictionDayDataEto);
+    }
+
+    return predictionDayDataEtos;
+  }

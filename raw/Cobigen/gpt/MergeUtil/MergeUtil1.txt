@@ -1,0 +1,33 @@
+public static <T extends Anchor> List<T> joinKeySetsRetainOrder(Map<? extends T, String> base, Map<? extends T, String> patch) {
+List<T> joinedList = new ArrayList<>();
+Set<? extends T> intersection = new HashSet<>(base.keySet());
+intersection.retainAll(patch.keySet());
+
+for (T key : base.keySet()) {
+    if (intersection.contains(key)) {
+        for (T patchKey : patch.keySet()) {
+            if (key.getAnchor().equals(patchKey.getAnchor())) {
+                joinedList.add(key);
+                break;
+            } else if (!joinedList.contains(patchKey)) {
+                joinedList.add(patchKey);
+                if (base.containsKey(patchKey)) {
+                    break;
+                }
+            }
+        }
+    } else {
+        joinedList.add(key);
+    }
+}
+
+for (T patchKey : patch.keySet()) {
+    if (!joinedList.contains(patchKey)) {
+        joinedList.add(patchKey);
+    }
+}
+
+return joinedList;
+}
+
+Note that the retainAll() method does not return a boolean, so the check if (checkSame.retainAll(patch.keySet())) has been removed. Also, x variable is not necessary and has been removed. Finally, the return type has been changed to List instead of ArrayList to be more flexible.

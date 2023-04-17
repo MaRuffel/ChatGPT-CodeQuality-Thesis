@@ -1,0 +1,64 @@
+public class SampleProcessor {
+    private int res;
+    private boolean measuresOK;
+    private boolean attrOK;
+    private boolean healthOK;
+    private static final int ATTR_MIN = 2;
+    private static final int ATTR2_MIN = 2;
+    private static final int ATTR3_MIN = 5;
+    private static final int ATTR_MAX = 50;
+    private static final int HEALTH_OK = 1;
+
+    public SampleProcessor(int length, int width, int weight, int attribute1, int attribute2, int attribute3, int amount, int health, int age) {
+        this.res = compute(length, width, weight, attribute1, attribute2, attribute3, amount, health, age);
+    }
+
+    public int compute(int length, int width, int weight, int attribute1, int attribute2, int attribute3, int amount, int health, int age) {
+        this.measuresOK = length > 0 && width > 0 && weight > 0;
+
+        if (attribute1 > ATTR_MIN && attribute1 < ATTR_MAX) {
+            this.attrOK = true;
+        } else if (attribute2 != attribute3) {
+            if (attribute2 > ATTR2_MIN && attribute3 > ATTR3_MIN) {
+                this.attrOK = true;
+            } else {
+                this.attrOK = false;
+            }
+        } else {
+            this.attrOK = false;
+        }
+
+        if (health != HEALTH_OK) {
+            this.healthOK = false;
+        } else {
+            if (amount > 200 && age > 0) {
+                double ratio = (double) age / amount;
+                this.healthOK = ratio > 1;
+            } else {
+                this.healthOK = false;
+            }
+        }
+
+        int res = 0;
+        if (measuresOK) res++;
+        if (attrOK) res++;
+        if (healthOK) res++;
+        return res;
+    }
+
+    public int getResult() {
+        return res;
+    }
+
+    public boolean isMeasuresOK() {
+        return measuresOK;
+    }
+
+    public boolean isAttrOK() {
+        return attrOK;
+    }
+
+    public boolean isHealthOK() {
+        return healthOK;
+    }
+}

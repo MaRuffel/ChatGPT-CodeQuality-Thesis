@@ -1,0 +1,46 @@
+private static final Map<String, Class<?>> PRIMITIVE_TYPES = new HashMap<>();
+static {
+    PRIMITIVE_TYPES.put("void", void.class);
+    PRIMITIVE_TYPES.put("boolean", boolean.class);
+    PRIMITIVE_TYPES.put("byte", byte.class);
+    PRIMITIVE_TYPES.put("char", char.class);
+    PRIMITIVE_TYPES.put("double", double.class);
+    PRIMITIVE_TYPES.put("float", float.class);
+    PRIMITIVE_TYPES.put("int", int.class);
+    PRIMITIVE_TYPES.put("long", long.class);
+    PRIMITIVE_TYPES.put("short", short.class);
+}
+
+private static Class<?> name2class(ClassLoader cl, String name) throws ClassNotFoundException {
+    int arrayDimensions = 0;
+    int index = name.indexOf('[');
+    if (index > 0) {
+        arrayDimensions = (name.length() - index) / 2;
+        name = name.substring(0, index);
+    }
+
+    if (arrayDimensions > 0) {
+        StringBuilder sb = new StringBuilder(name.length() + arrayDimensions);
+        while (arrayDimensions-- > 0) {
+            sb.append('[');
+        }
+
+        Class<?> primitiveType = PRIMITIVE_TYPES.get(name);
+        if (primitiveType != null) {
+            sb.append(JVM_PRIMITIVE_PREFIX.get(primitiveType));
+        } else {
+            sb.append('L').append(name).append(';');
+        }
+        name = sb.toString();
+    } else {
+        Class<?> primitiveType = PRIMITIVE_TYPES.get(name);
+        if (primitiveType != null) {
+            return primitiveType;
+        }
+    }
+
+    if (cl == null) {
+        cl = ClassUtils.getClassLoader();
+    }
+    return Class.forName(name, true, cl);
+}

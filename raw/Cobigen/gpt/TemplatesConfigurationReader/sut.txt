@@ -1,0 +1,63 @@
+  public Map<String, Template> loadTemplates(Trigger trigger)
+      throws UnknownExpressionException, UnknownContextVariableException, InvalidConfigurationException {
+
+    Map<String, Template> templates = new HashMap<>();
+    Templates templatesNode = this.configNode.getTemplates();
+    if (templatesNode != null) {
+      for (com.devonfw.cobigen.impl.config.entity.io.Template t : templatesNode.getTemplate()) {
+        if (templates.get(t.getName()) != null) {
+          throw new InvalidConfigurationException(this.configFilePath.toUri().toString(),
+              "Multiple template definitions found for ref='" + t.getName() + "'");
+        }
+        TemplatePath child = this.rootTemplateFolder.navigate(t.getTemplateFile());
+        if ((child == null) || (child.isFolder())) {
+          throw new InvalidConfigurationException(this.configFilePath.toUri().toString(),
+              "no template file found for '" + t.getTemplateFile() + "'");
+        }
+        Template template = createTemplate((TemplateFile) child, t.getName(), t.getDestinationPath(),
+            t.getMergeStrategy(), t.getTargetCharset(), null);
+        templates.put(t.getName(), template);
+      }
+    }
+
+    TemplateScans templateScans = this.configNode.getTemplateScans();
+    if (templateScans != null) {
+      List<TemplateScan> scans = templateScans.getTemplateScan();
+      if (scans != null) {
+        for (TemplateScan scan : scans) {
+          scanTemplates(scan, templates, trigger);
+        }
+      }
+    }
+
+    // override existing templates with extension definitions
+    Set<String> observedExtensionNames = Sets.newHashSet();
+    if (templatesNode != null && templatesNode.getTemplateExtension() != null) {
+      for (TemplateExtension ext : this.configNode.getTemplates().getTemplateExtension()) {
+        // detection of duplicate templateExtensions
+        if (observedExtensionNames.contains(ext.getRef())) {
+          throw new InvalidConfigurationException(
+              "Two templateExtensions declared for ref='" + ext.getRef() + "'. Don't know what to do.");
+        }
+        observedExtensionNames.add(ext.getRef());
+
+        // overriding properties if defined
+        if (templates.containsKey(ext.getRef())) {
+          Template template = templates.get(ext.getRef());
+          if (ext.getDestinationPath() != null) {
+            template.setUnresolvedTargetPath(ext.getDestinationPath());
+          }
+          if (ext.getMergeStrategy() != null) {
+            template.setMergeStrategy(ext.getMergeStrategy());
+          }
+          if (ext.getTargetCharset() != null) {
+            template.setTargetCharset(ext.getTargetCharset());
+          }
+        } else {
+          throw new InvalidConfigurationException(
+              "The templateExtension with ref='" + ext.getRef() + "' does not reference any template!");
+        }
+      }
+    }
+    return templates;
+  }

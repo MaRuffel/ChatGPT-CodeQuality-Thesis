@@ -1,0 +1,46 @@
+    void drainNormal(Observer<? super T> a) {
+        int missed = 1;
+        SimpleQueue<T> q = queue;
+        boolean failFast = !this.delayError;
+        boolean canBeError = true;
+        for (;;) {
+            for (;;) {
+
+                if (disposed) {
+                    downstream.lazySet(null);
+                    q.clear();
+                    return;
+                }
+
+                boolean d = this.done;
+                T v = queue.poll();
+                boolean empty = v == null;
+
+                if (d) {
+                    if (failFast && canBeError) {
+                        if (failedFast(q, a)) {
+                            return;
+                        } else {
+                            canBeError = false;
+                        }
+                    }
+
+                    if (empty) {
+                        errorOrComplete(a);
+                        return;
+                    }
+                }
+
+                if (empty) {
+                    break;
+                }
+
+                a.onNext(v);
+            }
+
+            missed = wip.addAndGet(-missed);
+            if (missed == 0) {
+                break;
+            }
+        }
+    }

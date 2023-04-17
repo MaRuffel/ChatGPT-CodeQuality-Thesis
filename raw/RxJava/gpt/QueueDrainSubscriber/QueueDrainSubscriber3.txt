@@ -1,0 +1,43 @@
+protected final void fastPathOrderedEmitMax(U value, boolean delayError, Disposable dispose) {
+    Subscriber<? super V> subscriber = downstream;
+    SimplePlainQueue<U> queue = this.queue;
+
+    if (!fastEnter()) {
+        queue.offer(value);
+        if (!enter()) {
+            return;
+        }
+    }
+
+    long requestedCount = requested.get();
+    if (requestedCount == 0) {
+        cancelled = true;
+        dispose.dispose();
+        subscriber.onError(MissingBackpressureException.createDefault());
+        return;
+    }
+
+    if (!queueIsEmpty(queue)) {
+        QueueDrainHelper.drainMaxLoop(queue, subscriber, delayError, dispose, this);
+        return;
+    }
+
+    if (!accept(subscriber, value)) {
+        return;
+    }
+
+    if (requestedCount != Long.MAX_VALUE) {
+        produced(1);
+    }
+
+    if (leave(-1) == 0) {
+        return;
+    }
+
+    QueueDrainHelper.drainMaxLoop(queue, subscriber, delayError, dispose, this);
+}
+
+private boolean queueIsEmpty(SimplePlainQueue<U> queue) {
+    return queue.isEmpty();
+}
+Note that the accept and produced methods have been extracted to separate methods, as they are likely part of a larger class hierarchy.

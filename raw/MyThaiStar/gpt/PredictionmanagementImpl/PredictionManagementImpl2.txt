@@ -1,0 +1,28 @@
+Use meaningful names: Use meaningful names for variables, methods, and classes. For example, rename criteria to predictionSearchCriteria or searchCriteria.
+
+Avoid magic numbers: Instead of using the number 1 in the line forecastData.setTimestamp(i + 1), create a constant for it, such as private static final int DAY_IN_SECONDS = 86400 and use forecastData.setTimestamp((i + 1) * DAY_IN_SECONDS).
+
+Use try-with-resources: Use try-with-resources to automatically close the database resources after use. For example, replace this.entityManager.persist(forecastData) with try (var tx = this.entityManager.getTransaction()) {tx.begin(); this.entityManager.persist(forecastData); tx.commit();}.
+
+Simplify null checks: Instead of using ternary operators to check for null values, use the Objects.requireNonNullElse method. For example, replace forecastData.setTemperature(criteria.getTemperatures().get(i) == null ? 0 : criteria.getTemperatures().get(i)) with forecastData.setTemperature(Objects.requireNonNullElse(criteria.getTemperatures().get(i), 0)).
+
+Use lambda expressions: Instead of using for loops, use lambda expressions to simplify the code. For example, replace the for loop that populates the predictionDayDataEtos list with the following code:
+
+scss
+Copy code
+predictionDayDataEtos = this.predictionDayDataRepository
+        .getPrediction(criteria)
+        .stream()
+        .map(entity -> {
+            PredictionDayDataEto predictionDayDataEto = new PredictionDayDataEto();
+            predictionDayDataEto.setId(entity.getId());
+            predictionDayDataEto.setDishId(entity.getDishId());
+            predictionDayDataEto.setDishName(entity.getDishName());
+            predictionDayDataEto.setTimestamp(entity.getTimestamp());
+            predictionDayDataEto.setForecast(entity.getForecast());
+            return predictionDayDataEto;
+        })
+        .collect(Collectors.toList());
+Improve exception handling: The code should handle any exceptions that might occur during the database operations, such as when the EntityManager is closed or when the transaction fails. You can wrap the database calls with a try-catch block and handle any exceptions appropriately.
+
+Improve logging: The code should log any errors or exceptions that might occur during the database operations. You can use a logging framework, such as Log4j or SLF4J, to log the messages.

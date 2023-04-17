@@ -1,0 +1,46 @@
+private void handleMulticastMessage(String message, InetSocketAddress remoteAddress) {
+    switch (message.substring(0, Math.min(message.length(), 10))) {
+        case REGISTER:
+            URL registerUrl = URL.valueOf(message.substring(REGISTER.length()).trim());
+            registered(registerUrl);
+            break;
+        case UNREGISTER:
+            URL unregisterUrl = URL.valueOf(message.substring(UNREGISTER.length()).trim());
+            unregistered(unregisterUrl);
+            break;
+        case SUBSCRIBE:
+            URL subscribeUrl = URL.valueOf(message.substring(SUBSCRIBE.length()).trim());
+            Set<URL> registeredUrls = getRegistered();
+            if (CollectionUtils.isNotEmpty(registeredUrls)) {
+                for (URL url : registeredUrls) {
+                    if (UrlUtils.isMatch(subscribeUrl, url)) {
+                        String host = getHost(remoteAddress, url);
+                        if (subscribeUrl.getParameter("unicast", true) && !NetUtils.getLocalHost().equals(host)) {
+                            unicast(REGISTER + " " + url.toFullString(), host);
+                        } else {
+                            multicast(REGISTER + " " + url.toFullString());
+                        }
+                    }
+                }
+            }
+            break;
+        default:
+            break;
+    }
+}
+
+private String getHost(InetSocketAddress remoteAddress, URL url) {
+    if (remoteAddress != null && remoteAddress.getAddress() != null) {
+        return remoteAddress.getAddress().getHostAddress();
+    } else {
+        return url.getIp();
+    }
+}
+
+private void registered(URL url) {
+    // register URL logic
+}
+
+private void unregistered(URL url) {
+    // unregister URL logic
+}

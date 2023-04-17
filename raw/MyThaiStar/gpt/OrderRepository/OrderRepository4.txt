@@ -1,0 +1,53 @@
+import static com.querydsl.core.alias.Alias.$;
+import static com.querydsl.core.alias.Alias.alias;
+
+default Page<OrderEntity> findOrders(OrderSearchCriteriaTo searchCriteria) {
+    OrderEntity order = alias(OrderEntity.class);
+    JPAQuery<OrderEntity> query = newDslQuery(order);
+
+    Long bookingId = searchCriteria.getBookingId();
+    Long invitedGuestId = searchCriteria.getInvitedGuestId();
+    String hostToken = searchCriteria.getHostToken();
+    String email = searchCriteria.getEmail();
+    String bookingToken = searchCriteria.getBookingToken();
+
+    if (bookingId != null && Optional.ofNullable(order.getBooking())
+            .map(BookingEntity::getId)
+            .map($::eq(bookingId))
+            .orElse(false)) {
+        query.where($("booking.id").eq(bookingId));
+    }
+
+    if (invitedGuestId != null && Optional.ofNullable(order.getInvitedGuest())
+            .map(GuestEntity::getId)
+            .map($::eq(invitedGuestId))
+            .orElse(false)) {
+        query.where($("invitedGuest.id").eq(invitedGuestId));
+    }
+
+    if (hostToken != null && Optional.ofNullable(order.getHost())
+            .map(HostEntity::getBooking)
+            .map(BookingEntity::getBookingToken)
+            .map($::eqIgnoreCase)
+            .orElse(false)) {
+        query.where($("host.booking.bookingToken").eqIgnoreCase(hostToken));
+    }
+
+    if (email != null && Optional.ofNullable(order.getBooking())
+            .map(BookingEntity::getEmail)
+            .map(String::toLowerCase)
+            .map($::likeIgnoreCase)
+            .orElse(false)) {
+        query.where($("booking.email").likeIgnoreCase(email));
+    }
+
+    if (bookingToken != null && Optional.ofNullable(order.getBooking())
+            .map(BookingEntity::getBookingToken)
+            .map(String::toLowerCase)
+            .map($::eqIgnoreCase)
+            .orElse(false)) {
+        query.where($("booking.bookingToken").eqIgnoreCase(bookingToken));
+    }
+
+    return QueryUtil.get().findPaginated(searchCriteria.getPageable(), query, true);
+}

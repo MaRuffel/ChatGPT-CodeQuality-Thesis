@@ -1,0 +1,67 @@
+private static Class<?> nameToClass(ClassLoader classLoader, String name) throws ClassNotFoundException {
+    int arrayDimensions = 0;
+    int arrayIndex = name.indexOf('[');
+    if (arrayIndex > 0) {
+        arrayDimensions = (name.length() - arrayIndex) / 2;
+        name = name.substring(0, arrayIndex);
+    }
+
+    String jvmClassName = null;
+    switch (name) {
+        case "void":
+            jvmClassName = JVM_VOID;
+            break;
+        case "boolean":
+            jvmClassName = JVM_BOOLEAN;
+            break;
+        case "byte":
+            jvmClassName = JVM_BYTE;
+            break;
+        case "char":
+            jvmClassName = JVM_CHAR;
+            break;
+        case "double":
+            jvmClassName = JVM_DOUBLE;
+            break;
+        case "float":
+            jvmClassName = JVM_FLOAT;
+            break;
+        case "int":
+            jvmClassName = JVM_INT;
+            break;
+        case "long":
+            jvmClassName = JVM_LONG;
+            break;
+        case "short":
+            jvmClassName = JVM_SHORT;
+            break;
+        default:
+            jvmClassName = "L" + name + ";";
+            break;
+    }
+
+    if (arrayDimensions > 0) {
+        StringBuilder sb = new StringBuilder();
+        while (arrayDimensions-- > 0) {
+            sb.append('[');
+        }
+        sb.append(jvmClassName);
+        jvmClassName = sb.toString();
+    }
+
+    if (classLoader == null) {
+        classLoader = ClassUtils.getClassLoader();
+    }
+
+    try (var classInputStream = classLoader.getResourceAsStream(jvmClassName.replace('.', '/') + ".class")) {
+        if (classInputStream == null) {
+            throw new ClassNotFoundException("Class not found: " + name);
+        }
+        return new ClassReader(classInputStream).accept(new ClassVisitor(Opcodes.ASM7) {
+            @Override
+            public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
+                // no-op
+            }
+        }, ClassReader.SKIP_CODE | ClassReader.SKIP_DEBUG | ClassReader.SKIP_FRAMES);
+    }
+}

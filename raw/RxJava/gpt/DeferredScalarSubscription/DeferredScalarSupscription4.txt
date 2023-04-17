@@ -1,0 +1,35 @@
+private static final int NO_REQUEST_HAS_VALUE = 1;
+private static final int HAS_REQUEST_HAS_VALUE = 3;
+private static final int NO_REQUEST_NO_VALUE = 0;
+private static final int HAS_REQUEST_NO_VALUE = 2;
+
+@Override
+public final void request(long numberOfItems) {
+    if (!SubscriptionHelper.validate(numberOfItems)) {
+        return;
+    }
+    for (;;) {
+        int state = get();
+        if ((state & ~NO_REQUEST_HAS_VALUE) != 0) {
+            // Either in fusion mode or request has already been called
+            return;
+        }
+        if (state == NO_REQUEST_HAS_VALUE) {
+            if (compareAndSet(NO_REQUEST_HAS_VALUE, HAS_REQUEST_HAS_VALUE)) {
+                T valueToSend = value;
+                if (valueToSend != null) {
+                    value = null;
+                    Subscriber<? super T> subscriber = downstream;
+                    subscriber.onNext(valueToSend);
+                    if (get() != CANCELLED) {
+                        subscriber.onComplete();
+                    }
+                }
+                return;
+            }
+        }
+        if (compareAndSet(NO_REQUEST_NO_VALUE, HAS_REQUEST_NO_VALUE)) {
+            return;
+        }
+    }
+}

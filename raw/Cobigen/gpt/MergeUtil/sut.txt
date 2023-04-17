@@ -1,0 +1,47 @@
+  public static ArrayList<Anchor> joinKeySetsRetainOrder(Map<Anchor, String> base, Map<Anchor, String> patch) {
+
+    ArrayList<Anchor> joinedList = new ArrayList<>();
+    Set<Anchor> checkSame = new HashSet<>();
+    checkSame.addAll(base.keySet());
+    if (checkSame.retainAll(patch.keySet())) {
+      int i = 0;
+      int x = 0;
+
+      for (Anchor s : base.keySet()) {
+        i++;
+        if (patch.containsKey(s)) {
+          for (Anchor t : patch.keySet()) {
+            x++;
+            if (s.getAnchor().equals(t.getAnchor()) && x == i) {
+              if (!joinedList.contains(s)) {
+                joinedList.add(s);
+              }
+              break;
+            } else if (!joinedList.contains(t)) {
+              joinedList.add(t);
+              if (base.containsKey(t)) {
+                break;
+              }
+            }
+          }
+        }
+        if (!joinedList.contains(s)) {
+          joinedList.add(s);
+        }
+        x = 0;
+      }
+      for (Anchor t : patch.keySet()) {
+        if (!joinedList.contains(t)) {
+          joinedList.add(t);
+        }
+      }
+      return joinedList;
+    } else {
+      for (Anchor s : base.keySet()) {
+        if (!joinedList.contains(s)) {
+          joinedList.add(s);
+        }
+      }
+      return joinedList;
+    }
+  }

@@ -1,0 +1,52 @@
+import java.util.ArrayList;
+
+public class SampleRepository {
+private ArrayList<Sample> samplesA = new ArrayList<>();
+private ArrayList<Sample> samplesB = new ArrayList<>();
+private final int MIN_WIDTH = 120;
+private final int MIN_LENGTH = 500;
+
+public void addSampleToA(Sample sample) {
+    if (isValidSample(sample)) {
+        samplesA.add(sample);
+    }
+}
+
+public void addSampleToB(Sample sample) {
+    if (isValidSample(sample)) {
+        samplesB.add(sample);
+    }
+}
+
+private boolean isValidSample(Sample sample) {
+    boolean valid = true;
+    if (sample.length < MIN_LENGTH) {
+        valid = false;
+    } else if (sample.width < MIN_WIDTH && !sample.ignoreWidth) {
+        valid = false;
+    }
+    sample.valid = valid;
+    return valid;
+}
+
+public class Sample {
+    public int length;
+    public int width;
+    public boolean valid;
+    public boolean ignoreWidth;
+    
+    public Sample(int length, int width, boolean ignoreWidth) {
+        this.length = length;
+        this.width = width;
+        this.ignoreWidth = ignoreWidth;
+    }
+}
+
+public ArrayList<Sample> getSamplesA() {
+    return samplesA;
+}
+
+public ArrayList<Sample> getSamplesB() {
+    return samplesB;
+}
+}

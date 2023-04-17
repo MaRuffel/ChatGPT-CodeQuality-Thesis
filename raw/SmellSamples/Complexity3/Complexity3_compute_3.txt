@@ -1,0 +1,27 @@
+import java.util.HashMap;
+
+public class Example {
+    private static final HashMap<Integer, Integer> map = new HashMap<>();
+    static {
+        map.put(1, 234);
+        map.put(2, 543);
+        map.put(3, 23);
+        map.put(4, 567);
+        map.put(6, 121);
+        map.put(7, 32);
+        map.put(8, 42);
+        map.put(9, 2321);
+        map.put(10, 2321);
+        map.put(11, 750);
+        map.put(12, 765);
+        map.put(13, 345);
+        map.put(14, 2321);
+        map.put(15, 2321);
+        map.put(16, 2321);
+        map.put(17, 5445);
+    }
+
+    public static int compute(int a) {
+        return map.getOrDefault(a, 0);
+    }
+}

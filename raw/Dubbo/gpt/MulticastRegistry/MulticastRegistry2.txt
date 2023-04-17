@@ -1,0 +1,41 @@
+private void receive(String msg, InetSocketAddress remoteAddress) {
+    switch (msg.substring(0, Math.min(msg.length(), 10))) {
+        case REGISTER:
+            handleUrlMessage(msg.substring(REGISTER.length()).trim(), this::registered);
+            break;
+        case UNREGISTER:
+            handleUrlMessage(msg.substring(UNREGISTER.length()).trim(), this::unregistered);
+            break;
+        case SUBSCRIBE:
+            handleSubscribeMessage(msg.substring(SUBSCRIBE.length()).trim(), remoteAddress);
+            break;
+        case UNSUBSCRIBE:
+            // handle unsubscribe message if needed
+            break;
+        default:
+            logger.debug("Unknown message type: {}", msg);
+    }
+}
+
+private void handleUrlMessage(String urlStr, Consumer<URL> action) {
+    URL url = URL.valueOf(urlStr);
+    action.accept(url);
+}
+
+private void handleSubscribeMessage(String urlStr, InetSocketAddress remoteAddress) {
+    URL url = URL.valueOf(urlStr);
+    Set<URL> urls = getRegistered();
+    if (CollectionUtils.isNotEmpty(urls)) {
+        for (URL u : urls) {
+            if (UrlUtils.isMatch(url, u)) {
+                String host = remoteAddress != null && remoteAddress.getAddress() != null ? remoteAddress.getAddress().getHostAddress() : url.getIp();
+                if (url.getParameter("unicast", true) // Whether the consumer's machine has only one process
+                        && !NetUtils.getLocalHost().equals(host)) { // Multiple processes in the same machine cannot be unicast with unicast or there will be only one process receiving information
+                    unicast(REGISTER + " " + u.toFullString(), host);
+                } else {
+                    multicast(REGISTER + " " + u.toFullString());
+                }
+            }
+        }
+    }
+}

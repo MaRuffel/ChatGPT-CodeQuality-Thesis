@@ -1,0 +1,54 @@
+private void extractAnnotationsRecursively(Map<String, Object> annotationsMap, Annotation[] annotations) {
+    for (Annotation annotation : annotations) {
+        // create a new map to store the annotation parameters
+        Map<String, Object> annotationParametersMap = new HashMap<>();
+        annotationsMap.put(annotation.annotationType().getCanonicalName().replaceAll("\\.", "_"), annotationParametersMap);
+
+        // get the getters of the annotation type and filter out unwanted methods
+        List<Method> getters = Arrays.stream(annotation.annotationType().getMethods())
+                .filter(getter -> getter.getParameterCount() == 0 && !isUnwantedMethod(getter))
+                .collect(Collectors.toList());
+
+        // iterate over the getters and extract the parameter values
+        for (Method getter : getters) {
+            try {
+                Object value = getter.invoke(annotation);
+                if (value instanceof Annotation[]) {
+                    // handle array of annotations recursively
+                    List<Map<String, Object>> recursiveAnnotationList = Arrays.stream((Annotation[]) value)
+                            .map(a -> {
+                                Map<String, Object> annotationParameterMap = new HashMap<>();
+                                extractAnnotationsRecursively(annotationParameterMap, new Annotation[] {a});
+                                return annotationParameterMap;
+                            })
+                            .collect(Collectors.toList());
+                    annotationParametersMap.put(getter.getName(), recursiveAnnotationList);
+                } else if (value instanceof Enum<?>[]) {
+                    // handle array of enums
+                    List<String> enumValues = Arrays.stream((Enum<?>[]) value)
+                            .map(Enum::name)
+                            .collect(Collectors.toList());
+                    annotationParametersMap.put(getter.getName(), enumValues);
+                } else if (value instanceof Object[]) {
+                    // handle array of objects
+                    List<Object> objectValues = Arrays.stream((Object[]) value)
+                            .collect(Collectors.toList());
+                    annotationParametersMap.put(getter.getName(), objectValues);
+                } else {
+                    // handle single value
+                    annotationParametersMap.put(getter.getName(), Optional.ofNullable(value).map(Object::toString).orElse(null));
+                }
+            } catch (ReflectiveOperationException e) {
+                // log the error message and stack trace
+                LOG.error("An error occurred while retrieving value '{}' from annotation '{}'.",
+                        getter.getName(), annotation.getClass(), e);
+            }
+        }
+    }
+}
+
+private boolean isUnwantedMethod(Method method) {
+    return method.getName().equals("hashCode") ||
+            method.getName().equals("annotationType") ||
+            method.getName().equals("toString");
+}

@@ -1,0 +1,27 @@
+  default Page<OrderEntity> findOrders(OrderSearchCriteriaTo criteria) {
+
+    OrderEntity alias = newDslAlias();
+    JPAQuery<OrderEntity> query = newDslQuery(alias);
+
+    Long booking = criteria.getBookingId();
+    if (booking != null && alias.getBooking() != null) {
+      query.where(Alias.$(alias.getBooking().getId()).eq(booking));
+    }
+    Long invitedGuest = criteria.getInvitedGuestId();
+    if (invitedGuest != null && alias.getInvitedGuest() != null) {
+      query.where(Alias.$(alias.getInvitedGuest().getId()).eq(invitedGuest));
+    }
+    String hostToken = criteria.getHostToken();
+    if (hostToken != null && alias.getHost() != null) {
+      query.where(Alias.$(alias.getBooking().getBookingToken()).eq(hostToken));
+    }
+    String email = criteria.getEmail();
+    if ((email != null) && alias.getBooking() != null) {
+      query.where(Alias.$(alias.getBooking().getEmail()).toLowerCase().like(email.toLowerCase()));
+    }
+    String bookingToken = criteria.getBookingToken();
+    if ((bookingToken != null) && alias.getBooking() != null) {
+      query.where(Alias.$(alias.getBooking().getBookingToken()).toLowerCase().eq(bookingToken.toLowerCase()));
+    }
+    return QueryUtil.get().findPaginated(criteria.getPageable(), query, true);
+  }

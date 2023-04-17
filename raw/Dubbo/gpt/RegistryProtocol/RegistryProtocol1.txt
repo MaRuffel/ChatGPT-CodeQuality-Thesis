@@ -1,0 +1,88 @@
+@Override
+public void unexport() {
+    String cacheKey = getCacheKey(this.originInvoker);
+    removeBounds(cacheKey);
+
+    unregisterFromRegistry();
+
+    removeListeners();
+
+    scheduleUnexport();
+}
+
+private void unregisterFromRegistry() {
+    Registry registry = getRegistry();
+    if (registry == null) {
+        return;
+    }
+
+    try {
+        registry.unregister(registerUrl);
+    } catch (RegistryException e) {
+        logger.error("Failed to unregister from registry", e);
+    }
+}
+
+private void removeListeners() {
+    if (subscribeUrl == null) {
+        return;
+    }
+
+    Map<URL, Set<NotifyListener>> overrideListeners = getOverrideListeners();
+    if (overrideListeners == null) {
+        return;
+    }
+
+    Set<NotifyListener> listeners = overrideListeners.get(subscribeUrl);
+    if (listeners == null) {
+        return;
+    }
+
+    listeners.remove(notifyListener);
+
+    if (listeners.isEmpty()) {
+        overrideListeners.remove(subscribeUrl);
+    }
+
+    ApplicationModel appModel = getApplicationModel(registerUrl.getScopeModel());
+    if (appModel == null) {
+        return;
+    }
+
+    if (shouldRemoveConfigListeners(appModel)) {
+        removeConfigListeners(subscribeUrl);
+    }
+
+    if (registry.isServiceDiscovery()) {
+        return;
+    }
+
+    try {
+        registry.unsubscribe(subscribeUrl, notifyListener);
+    } catch (RegistryException e) {
+        logger.error("Failed to unsubscribe from registry", e);
+    }
+}
+
+private void removeConfigListeners(URL subscribeUrl) {
+    String serviceKey = subscribeUrl.getServiceKey() + CONFIGURATORS_SUFFIX;
+
+    ApplicationModel appModel = getApplicationModel(registerUrl.getScopeModel());
+    for (ModuleModel moduleModel : appModel.getPubModuleModels()) {
+        ServiceRepository serviceRepo = moduleModel.getServiceRepository();
+        if (serviceRepo == null) {
+            continue;
+        }
+
+        Collection<ServiceDescriptor> exportedServices = serviceRepo.getExportedServices();
+        if (exportedServices.isEmpty()) {
+            continue;
+        }
+
+        GovernanceRuleRepository ruleRepo = moduleModel.getExtensionLoader(GovernanceRuleRepository.class).getDefaultExtension();
+        if (ruleRepo == null) {
+            continue;
+        }
+
+        ServiceConfigurationListener configListener = serviceConfigurationListeners.remove(subscribeUrl.getServiceKey());
+        if (

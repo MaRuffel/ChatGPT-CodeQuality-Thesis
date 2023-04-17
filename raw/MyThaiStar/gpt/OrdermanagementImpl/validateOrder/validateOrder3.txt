@@ -1,0 +1,39 @@
+private OrderEntity validateOrder(Token token, OrderEntity orderEntity) {
+    Objects.requireNonNull(token, "Token cannot be null");
+    Objects.requireNonNull(orderEntity, "Order entity cannot be null");
+
+    if (token.getType() == TokenType.BOOKING) {
+        validateBookingOrder(token.getValue(), orderEntity);
+    } else if (token.getType() == TokenType.INVITED_GUEST) {
+        validateInvitedGuestOrder(token.getValue(), orderEntity);
+    } else {
+        throw new InvalidTokenException();
+    }
+
+    return orderEntity;
+}
+
+private void validateBookingOrder(String bookingToken, OrderEntity orderEntity) {
+    BookingCto booking = getBookingByToken(bookingToken)
+        .orElseThrow(NoBookingException::new);
+
+    List<OrderCto> currentOrders = getBookingOrders(booking.getBooking().getId());
+    if (!currentOrders.isEmpty()) {
+        throw new OrderAlreadyExistException();
+    }
+
+    orderEntity.setBookingId(booking.getBooking().getId());
+}
+
+private void validateInvitedGuestOrder(String guestToken, OrderEntity orderEntity) {
+    InvitedGuestEto guest = getInvitedGuestByToken(guestToken)
+        .orElseThrow(NoInviteException::new);
+
+    List<OrderCto> currentGuestOrders = getInvitedGuestOrders(guest.getId());
+    if (!currentGuestOrders.isEmpty()) {
+        throw new OrderAlreadyExistException();
+    }
+
+    orderEntity.setBookingId(guest.getBookingId());
+    orderEntity.setInvitedGuestId(guest.getId());
+}

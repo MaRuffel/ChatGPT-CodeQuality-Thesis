@@ -1,0 +1,32 @@
+default Page<OrderEntity> findOrders(OrderSearchCriteriaTo criteria) {
+
+    OrderEntity orderAlias = newDslAlias();
+    JPAQuery<OrderEntity> query = newDslQuery(orderAlias);
+
+    Long bookingId = criteria.getBookingId();
+    if (bookingId != null && orderAlias.getBooking() != null) {
+        query.where(orderAlias.getBooking().getId()::eq(bookingId));
+    }
+
+    Long invitedGuestId = criteria.getInvitedGuestId();
+    if (invitedGuestId != null && orderAlias.getInvitedGuest() != null) {
+        query.where(orderAlias.getInvitedGuest().getId()::eq(invitedGuestId));
+    }
+
+    String hostToken = criteria.getHostToken();
+    if (StringUtils.isNotBlank(hostToken) && orderAlias.getHost() != null) {
+        query.where(orderAlias.getBooking().getBookingToken()::eqIgnoreCase);
+    }
+
+    String email = criteria.getEmail();
+    if (StringUtils.isNotBlank(email) && orderAlias.getBooking() != null) {
+        query.where(orderAlias.getBooking().getEmail().toLowerCase()::like);
+    }
+
+    String bookingToken = criteria.getBookingToken();
+    if (StringUtils.isNotBlank(bookingToken) && orderAlias.getBooking() != null) {
+        query.where(orderAlias.getBooking().getBookingToken().toLowerCase()::eq);
+    }
+
+    return QueryUtil.get().findPaginated(criteria.getPageable(), query, true);
+}

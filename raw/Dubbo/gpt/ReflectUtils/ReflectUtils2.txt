@@ -1,0 +1,50 @@
+/**
+ * Converts a string class name to its corresponding Class object.
+ *
+ * @param cl   the class loader to use (null to use the default class loader)
+ * @param name the class name to convert
+ * @return the corresponding Class object
+ * @throws ClassNotFoundException if the class cannot be found
+ */
+private static Class<?> name2class(ClassLoader cl, String name) throws ClassNotFoundException {
+    // Check for array notation and count the number of dimensions
+    int index = name.indexOf('[');
+    int dimensions = 0;
+    if (index > 0) {
+        dimensions = (name.length() - index) / 2;
+        name = name.substring(0, index);
+    }
+    
+    // Convert primitive types to their class objects
+    HashMap<String, Class<?>> primitiveTypes = new HashMap<String, Class<?>>() {{
+        put("void", void.class);
+        put("boolean", boolean.class);
+        put("byte", byte.class);
+        put("char", char.class);
+        put("double", double.class);
+        put("float", float.class);
+        put("int", int.class);
+        put("long", long.class);
+        put("short", short.class);
+    }};
+    Class<?> primitiveType = primitiveTypes.get(name);
+    if (primitiveType != null) {
+        if (dimensions == 0) {
+            return primitiveType;
+        } else {
+            // Convert to array type
+            name = primitiveType.getName();
+        }
+    } else {
+        // Convert object type to JVM format
+        if (dimensions == 0) {
+            name = "L" + name + ";";
+        }
+    }
+
+    // Load the class using the specified class loader
+    if (cl == null) {
+        cl = ClassUtils.getClassLoader();
+    }
+    return Class.forName(name, true, cl);
+}

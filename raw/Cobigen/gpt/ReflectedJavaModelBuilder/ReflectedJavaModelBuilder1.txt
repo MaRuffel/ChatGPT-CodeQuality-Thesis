@@ -1,0 +1,52 @@
+private void extractAnnotationsRecursively(Map<String, Object> annotationsData, Annotation[] annotations) {
+    for (Annotation annotation : annotations) {
+        Class<? extends Annotation> annotationType = annotation.annotationType();
+        Map<String, Object> annotationData = new HashMap<>();
+        annotationsData.put(annotationType.getCanonicalName().replaceAll("\\.", "_"), annotationData);
+
+        for (Method getter : annotationType.getMethods()) {
+            if (getter.getParameterTypes().length > 0 ||
+                getter.getName().equals("hashCode") ||
+                getter.getName().equals("annotationType") ||
+                getter.getName().equals("toString")) {
+                continue;
+            }
+            try {
+                Object value = getter.invoke(annotation);
+                if (value instanceof Annotation[]) {
+                    List<Map<String, Object>> recursiveAnnotationList = new LinkedList<>();
+                    for (Annotation a : (Annotation[]) value) {
+                        Map<String, Object> annotationParameterData = new HashMap<>();
+                        extractAnnotationsRecursively(annotationParameterData, new Annotation[] {a});
+                        recursiveAnnotationList.add(annotationParameterData);
+                    }
+                    annotationData.put(getter.getName(), recursiveAnnotationList);
+                } else if (value instanceof Enum<?>[]) {
+                    List<String> enumValues = new LinkedList<>();
+                    for (Enum<?> e : (Enum<?>[]) value) {
+                        enumValues.add(e.name());
+                    }
+                    annotationData.put(getter.getName(), enumValues);
+                } else if (value instanceof Object[]) {
+                    annotationData.put(getter.getName(), Arrays.asList((Object[]) value));
+                } else if (value instanceof Enum<?>) {
+                    annotationData.put(getter.getName(), ((Enum<?>) value).name());
+                } else if (value instanceof Byte ||
+                           value instanceof Short ||
+                           value instanceof Integer ||
+                           value instanceof Long ||
+                           value instanceof Float ||
+                           value instanceof Double ||
+                           value instanceof Boolean ||
+                           value instanceof Character) {
+                    annotationData.put(getter.getName(), String.valueOf(value));
+                } else {
+                    annotationData.put(getter.getName(), String.valueOf(value));
+                }
+            } catch (IllegalAccessException | InvocationTargetException e) {
+                LOG.error("An error occurred while retrieving value '{}' from annotation '{}'.",
+                          getter.getName(), annotationType, e);
+            }
+        }
+    }
+}

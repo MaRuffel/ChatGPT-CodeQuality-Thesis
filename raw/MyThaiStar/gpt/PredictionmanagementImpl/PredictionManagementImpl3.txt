@@ -1,0 +1,62 @@
+public PredictionDataTo getNextWeekPrediction(PredictionSearchCriteriaTo criteria) {
+    Objects.requireNonNull(criteria, "Criteria cannot be null");
+
+    LOG.debug("Generating predictions for next week.");
+
+    try (EntityManager em = entityManagerFactory.createEntityManager()) {
+        em.getTransaction().begin();
+
+        deleteOldForecastData(em);
+
+        addNewForecastData(em, criteria);
+
+        List<DishEntity> dishes = dishRepository.findAll();
+
+        trainDishes(dishes, criteria.getStartBookingdate());
+
+        generatePredictionsForDishes(dishes);
+
+        List<PredictionDayDataEto> predictionDayDataEtos = getPredictionDayData(criteria);
+
+        PredictionDataTo predictionDataTo = new PredictionDataTo();
+        predictionDataTo.setData(predictionDayDataEtos);
+
+        em.getTransaction().commit();
+
+        return predictionDataTo;
+    }
+}
+
+private void deleteOldForecastData(EntityManager em) {
+    em.createQuery("DELETE FROM PredictionForecastDataEntity").executeUpdate();
+}
+
+private void addNewForecastData(EntityManager em, PredictionSearchCriteriaTo criteria) {
+    IntStream.range(0, criteria.getTemperatures().size()).forEach(i -> {
+        PredictionForecastDataEntity forecastData = new PredictionForecastDataEntity();
+        forecastData.setTimestamp(i + 1);
+        forecastData.setTemperature(Optional.ofNullable(criteria.getTemperatures().get(i)).orElse(0));
+        forecastData.setHoliday(Optional.ofNullable(criteria.getHolidays().get(i)).orElse(0));
+        em.persist(forecastData);
+    });
+}
+
+private void trainDishes(List<DishEntity> dishes, LocalDate startBookingdate) {
+    dishes.forEach(dish -> train(dish, startBookingdate));
+}
+
+private void generatePredictionsForDishes(List<DishEntity> dishes) {
+    dishes.forEach(this::generatePredictionFor);
+}
+
+private List<PredictionDayDataEto> getPredictionDayData(PredictionSearchCriteriaTo criteria) {
+    return predictionDayDataRepository.getPrediction(criteria).stream()
+            .map(entity -> new PredictionDayDataEto(
+                    entity.getId(),
+                    entity.getDishId(),
+                    entity.getDishName(),
+                    entity.getTimestamp(),
+                    entity.getForecast()))
+            .collect(Collectors.toList());
+}
+Note that I made some assumptions about the data types and methods used in the original implementation based on the variable names and the repository names. Please adjust the code accordingly if needed.

@@ -1,0 +1,35 @@
+private void receive(String msg, InetSocketAddress remoteAddress) {
+    URL url = URL.valueOf(msg.substring(msg.indexOf(' ') + 1).trim());
+    String command = msg.substring(0, msg.indexOf(' ')).trim();
+
+    switch (command) {
+        case REGISTER:
+            registered(url);
+            logger.info("Received REGISTER message from {} for {}", remoteAddress, url);
+            break;
+        case UNREGISTER:
+            unregistered(url);
+            logger.info("Received UNREGISTER message from {} for {}", remoteAddress, url);
+            break;
+        case SUBSCRIBE:
+            Set<URL> registeredUrls = getRegistered();
+            if (CollectionUtils.isNotEmpty(registeredUrls)) {
+                for (URL registeredUrl : registeredUrls) {
+                    if (UrlUtils.isMatch(url, registeredUrl)) {
+                        String host = remoteAddress != null && remoteAddress.getAddress() != null ? remoteAddress.getAddress().getHostAddress() : url.getIp();
+                        if (url.getParameter("unicast") && !NetUtils.getLocalHost().equals(host)) {
+                            unicast(REGISTER + " " + registeredUrl.toFullString(), host);
+                        } else {
+                            multicast(REGISTER + " " + registeredUrl.toFullString());
+                        }
+                    }
+                }
+            }
+            logger.info("Received SUBSCRIBE message from {} for {}", remoteAddress, url);
+            break;
+        default:
+            // ignore unknown commands
+            logger.warn("Received unknown message from {}: {}", remoteAddress, msg);
+            break;
+    }
+}

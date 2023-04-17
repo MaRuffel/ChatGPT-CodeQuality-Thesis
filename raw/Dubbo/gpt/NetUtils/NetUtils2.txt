@@ -1,0 +1,24 @@
+@SuppressWarnings("deprecation")
+public static void setInterface(MulticastSocket multicastSocket, boolean preferIpv6) throws IOException {
+    boolean interfaceSet = false;
+    Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
+    while (interfaces.hasMoreElements() && !interfaceSet) {
+        NetworkInterface ni = interfaces.nextElement();
+        if (ni.isUp() && !ni.isLoopback()) {
+            Enumeration<InetAddress> addresses = ni.getInetAddresses();
+            while (addresses.hasMoreElements() && !interfaceSet) {
+                InetAddress address = addresses.nextElement();
+                if ((preferIpv6 && address instanceof Inet6Address) || (!preferIpv6 && address instanceof Inet4Address)) {
+                    try {
+                        if (address.isReachable(100)) {
+                            multicastSocket.setInterface(address);
+                            interfaceSet = true;
+                        }
+                    } catch (IOException e) {
+                        // ignore
+                    }
+                }
+            }
+        }
+    }
+}

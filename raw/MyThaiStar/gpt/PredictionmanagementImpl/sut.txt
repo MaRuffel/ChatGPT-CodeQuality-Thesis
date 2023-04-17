@@ -1,0 +1,43 @@
+  public PredictionDataTo getNextWeekPrediction(PredictionSearchCriteriaTo criteria) {
+
+    LOG.debug("Generate predictions for next week.");
+
+    // delete old forecast data
+    this.predictionDayDataRepository.deletePredictionForecastData();
+
+    // add new forecast data
+    for (int i = 0; i < criteria.getTemperatures().size(); i++) {
+      PredictionForecastDataEntity forecastData = new PredictionForecastDataEntity();
+      forecastData.setTimestamp(i + 1);
+      forecastData.setTemperature(criteria.getTemperatures().get(i) == null ? 0 : criteria.getTemperatures().get(i));
+      forecastData.setHoliday(criteria.getHolidays().get(i) == null ? 0 : 1);
+      this.entityManager.persist(forecastData);
+    }
+
+    PredictionDataTo predictionDataTo = new PredictionDataTo();
+    List<PredictionDayData> predictionDayDataEtos = new ArrayList<>();
+
+    List<DishEntity> dishes = this.dishRepository.findAll();
+
+    for (DishEntity dish : dishes) {
+      train(dish, criteria.getStartBookingdate());
+    }
+
+    for (DishEntity dish : dishes) {
+      generatePredictionFor(dish);
+    }
+
+    for (PredictionDayDataEntity entity : this.predictionDayDataRepository.getPrediction(criteria)) {
+      PredictionDayDataEto predictionDayDataEto = new PredictionDayDataEto();
+      predictionDayDataEto.setId(entity.getId());
+      predictionDayDataEto.setDishId(entity.getDishId());
+      predictionDayDataEto.setDishName(entity.getDishName());
+      predictionDayDataEto.setTimestamp(entity.getTimestamp());
+      predictionDayDataEto.setForecast(entity.getForecast());
+      predictionDayDataEtos.add(predictionDayDataEto);
+    }
+
+    predictionDataTo.setData(predictionDayDataEtos);
+
+    return predictionDataTo;
+  }

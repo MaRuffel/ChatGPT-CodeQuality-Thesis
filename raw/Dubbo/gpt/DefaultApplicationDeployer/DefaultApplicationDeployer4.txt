@@ -1,0 +1,59 @@
+private DeployState calculateState() {
+    final int PENDING = 1, STARTING = 2, STARTED = 3, STOPPING = 4, STOPPED = 5, FAILED = 6;
+
+    DeployState newState = DeployState.UNKNOWN;
+    int pendingCount = 0, startingCount = 0, startedCount = 0, stoppingCount = 0, stoppedCount = 0, failedCount = 0;
+    for (ModuleModel moduleModel : applicationModel.getModuleModels()) {
+        ModuleDeployer deployer = moduleModel.getDeployer();
+        if (deployer == null) {
+            pendingCount++;
+        } else {
+            switch(deployer.getStatus()) {
+                case "PENDING":
+                    pendingCount++;
+                    break;
+                case "STARTING":
+                    startingCount++;
+                    break;
+                case "STARTED":
+                    startedCount++;
+                    break;
+                case "STOPPING":
+                    stoppingCount++;
+                    break;
+                case "STOPPED":
+                    stoppedCount++;
+                    break;
+                case "FAILED":
+                    failedCount++;
+                    break;
+            }
+        }
+    }
+
+    if (failedCount > 0) {
+        newState = DeployState.FAILED;
+    } else if (startedCount > 0) {
+        if (pendingCount + startingCount + stoppingCount + stoppedCount == 0) {
+            newState = DeployState.STARTED;
+        } else if (pendingCount + startingCount > 0) {
+            newState = DeployState.STARTING;
+        } else if (stoppingCount + stoppedCount > 0) {
+            newState = DeployState.STOPPING;
+        }
+    } else if (startingCount > 0) {
+        newState = DeployState.STARTING;
+    } else if (pendingCount > 0) {
+        if (startingCount + stoppingCount + stoppedCount == 0) {
+            newState = DeployState.PENDING;
+        } else if (stoppingCount + stoppedCount > 0) {
+            newState = DeployState.STOPPING;
+        }
+    } else if (stoppingCount > 0) {
+        newState = DeployState.STOPPING;
+    } else if (stoppedCount > 0) {
+        newState = DeployState.STOPPED;
+    }
+    return newState;
+}
+Note: These suggestions are not exhaustive, and there could be other ways to improve the code depending on the specific requirements of the application.

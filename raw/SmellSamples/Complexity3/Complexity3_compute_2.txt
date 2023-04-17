@@ -1,0 +1,47 @@
+public int compute(int a) {
+    switch(a) {
+        case 1:
+            return 234;
+        case 2:
+            return 543;
+        case 3:
+            return 23;
+        case 4:
+            return 567;
+        case 6:
+            return 121;
+        case 7:
+            return 32;
+        case 8:
+            return 42;
+        case 9:
+        case 10:
+        case 14:
+        case 15:
+        case 16:
+            return 2321;
+        case 11:
+            return 750;
+        case 12:
+            return 765;
+        case 13:
+            return 345;
+        case 17:
+            return 5445;
+        default:
+            return 0;
+    }
+}
+This makes the code more concise and easier to read. Additionally, it is more efficient because the switch statement is optimized for integer values and the compiler can generate more efficient code for it compared to multiple if-else statements.
+
+Another way to improve the code is to use an array or a map to store the values for each input. This can make the code more maintainable and easier to update if the values change in the future. Here's an example using an array:
+
+private static final int[] VALUES = {234, 543, 23, 567, 0, 121, 32, 42, 2321, 750, 765, 345, 2321, 2321, 2321, 5445};
+
+public int compute(int a) {
+    if (a >= 1 && a <= VALUES.length) {
+        return VALUES[a-1];
+    } else {
+        return 0;
+    }
+}

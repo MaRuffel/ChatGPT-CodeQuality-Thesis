@@ -1,0 +1,50 @@
+@Override
+public ModelWriter writeAnnotation(JavaAnnotation annotation) {
+StringBuilder builder = new StringBuilder();
+builder.append('@');
+builder.append(annotation.getType().getGenericValue());
+if (!annotation.getPropertyMap().isEmpty()) {
+builder.indent();
+builder.append('(');
+Set<Entry<String, AnnotationValue>> annotationEntrySet = annotation.getPropertyMap().entrySet();
+for (Entry<String, AnnotationValue> entry : annotationEntrySet) {
+if (annotationEntrySet.size() > 1 || !"value".equals(entry.getKey())) {
+builder.append(entry.getKey());
+builder.append('=');
+}
+    if (entry.getValue().getParameterValue() instanceof JavaAnnotation) {
+      writeAnnotation((JavaAnnotation) entry.getValue().getParameterValue());
+    } else if (entry.getValue().getParameterValue() instanceof Collection<?>) {
+      Collection<?> annotations = (Collection<?>) entry.getValue().getParameterValue();
+      Object[] a = annotations.toArray();
+      builder.append("{");
+      for (int i = 0; i < a.length; i++) {
+        if (a[i] instanceof JavaAnnotation) {
+          if (i > 0) {
+            builder.append(", ");
+          }
+          writeAnnotation((JavaAnnotation) a[i]);
+        } else {
+          if (i > 0) {
+            builder.append(", ");
+          }
+          builder.append(a[i].toString());
+        }
+      }
+      builder.append("}");
+    } else {
+      builder.append(entry.getValue().toString());
+    }
+
+    if (annotationEntrySet.size() > 1 && entry != annotationEntrySet.toArray()[annotationEntrySet.size()-1]) {
+      builder.append(',');
+      builder.newline();
+    }
+  }
+  builder.append(')');
+  builder.deindent();
+}
+builder.newline();
+this.buffer.write(builder.toString());
+return this;
+}

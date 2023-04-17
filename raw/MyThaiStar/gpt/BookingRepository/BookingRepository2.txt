@@ -1,0 +1,55 @@
+default Page<BookingEntity> findBookings(BookingSearchCriteriaTo criteria) {
+
+  QBookingEntity booking = QBookingEntity.bookingEntity;
+  JPAQuery<BookingEntity> query = newDslQuery(booking);
+
+  StringUtils stringUtils = StringUtils.getInstance();
+
+  stringUtils.ifNotBlank(criteria.getName(), name ->
+    QueryUtil.get().whereString(query, booking.name, name, criteria.getNameOption())
+  );
+
+  stringUtils.ifNotBlank(criteria.getBookingToken(), bookingToken ->
+    QueryUtil.get().whereString(query, booking.bookingToken, bookingToken, criteria.getBookingTokenOption())
+  );
+
+  stringUtils.ifNotBlank(criteria.getComment(), comment ->
+    QueryUtil.get().whereString(query, booking.comment, comment, criteria.getCommentOption())
+  );
+
+  Instant bookingDate = criteria.getBookingDate();
+  if (bookingDate != null) {
+    query.where(booking.bookingDate.eq(bookingDate));
+  }
+
+  Instant expirationDate = criteria.getExpirationDate();
+  if (expirationDate != null) {
+    query.where(booking.expirationDate.eq(expirationDate));
+  }
+
+  Instant creationDate = criteria.getCreationDate();
+  if (creationDate != null) {
+    query.where(booking.creationDate.eq(creationDate));
+  }
+
+  stringUtils.ifNotBlank(criteria.getEmail(), email ->
+    QueryUtil.get().whereString(query, booking.email, email, criteria.getEmailOption())
+  );
+
+  Boolean canceled = criteria.getCanceled();
+  if (canceled != null) {
+    query.where(booking.canceled.eq(canceled));
+  }
+
+  BookingType bookingType = criteria.getBookingType();
+  if (bookingType != null) {
+    query.where(booking.bookingType.eq(bookingType));
+  }
+
+  Long tableId = criteria.getTableId();
+  if (tableId != null) {
+    query.where(booking.table.id.eq(tableId));
+  }
+
+  return QueryUtil.get().findPaginated(criteria.getPageable(), query, true);
+}

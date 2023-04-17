@@ -1,0 +1,82 @@
+        void drain() {
+            // If this method is already running in another thread, return immediately.
+            if (getAndIncrement() != 0) {
+                return;
+            }
+
+            // Initialize variables.
+            int missed = 1;
+            long e = emitted;
+            Subscriber<? super C> a = downstream;
+            SpscLinkedArrayQueue<C> q = queue;
+            boolean cancelled = this.cancelled;
+
+            // Loop until all items in the queue have been emitted.
+            for (;;) {
+                long r = requested.get();
+                while (e != r) {
+                    // If the subscription has been cancelled, clear the queue and return.
+                    if (cancelled) {
+                        q.clear();
+                        return;
+                    }
+
+                    // If an error has occurred, clear the queue and terminate the subscriber.
+                    Throwable ex = errors.get();
+                    if (ex != null) {
+                        q.clear();
+                        errors.tryTerminateConsumer(a);
+                        return;
+                    }
+
+                    // Dequeue an item from the queue.
+                    C v = q.poll();
+                    boolean empty = v == null;
+
+                    // If the queue is empty and the publisher has completed, emit onComplete.
+                    if (empty && done) {
+                        a.onComplete();
+                        return;
+                    }
+
+                    // If the queue is empty, break out of the loop to check for completion again.
+                    if (empty) {
+                        break;
+                    }
+
+                    // Emit the dequeued item to the subscriber.
+                    a.onNext(v);
+                    e++;
+                }
+
+                // If all requested items have been emitted, check for completion again.
+                if (e == r) {
+                    // If the subscription has been cancelled, clear the queue and return.
+                    if (cancelled) {
+                        q.clear();
+                        return;
+                    }
+
+                    // If an error has occurred, clear the queue and terminate the subscriber.
+                    Throwable ex = errors.get();
+                    if (ex != null) {
+                        q.clear();
+                        errors.tryTerminateConsumer(a);
+                        return;
+                    }
+
+                    // If the publisher has completed and the queue is empty, emit onComplete.
+                    if (done && q.isEmpty()) {
+                        a.onComplete();
+                        return;
+                    }
+                }
+
+                // Update the emitted count and loop until no more items can be emitted.
+                emitted = e;
+                missed = addAndGet(-missed);
+                if (missed == 0) {
+                    break;
+                }
+            }
+        }

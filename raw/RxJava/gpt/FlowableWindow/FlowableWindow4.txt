@@ -1,0 +1,85 @@
+/**
+ * Drains the queue of UnicastProcessors and sends their contents downstream.
+ */
+void drain() {
+    if (wip.getAndIncrement() != 0) {
+        return;
+    }
+
+    final Subscriber<? super Flowable<T>> subscriber = downstream;
+    final SpscLinkedArrayQueue<UnicastProcessor<T>> queue = queue;
+    int missed = 1;
+
+    outer: for (;;) {
+        if (cancelled) {
+            closeQueue(queue);
+        } else {
+            long requestedCount = requested.get();
+            long emittedCount = emitFromQueue(queue, requestedCount, subscriber);
+            if (emittedCount == requestedCount) {
+                if (cancelled) {
+                    continue;
+                }
+                checkTerminated(subscriber, queue);
+            } else {
+                requested.addAndGet(-emittedCount);
+            }
+        }
+
+        missed = wip.addAndGet(-missed);
+        if (missed == 0) {
+            break;
+        }
+    }
+}
+
+/**
+ * Emits elements from the queue of UnicastProcessors until either
+ * the requested count has been reached or the queue is empty.
+ *
+ * @return The number of elements emitted from the queue.
+ */
+private long emitFromQueue(SpscLinkedArrayQueue<UnicastProcessor<T>> queue,
+                           long requestedCount,
+                           Subscriber<? super Flowable<T>> subscriber) {
+    long emittedCount = 0;
+    while (emittedCount != requestedCount) {
+        boolean done = this.done;
+        UnicastProcessor<T> processor = queue.poll();
+        boolean empty = processor == null;
+        if (cancelled) {
+            return emittedCount;
+        }
+        if (checkTerminated(done, empty, subscriber, queue)) {
+            return emittedCount;
+        }
+        if (empty) {
+            break;
+        }
+        FlowableWindowSubscribeIntercept<T> intercept = new FlowableWindowSubscribeIntercept<>(processor);
+        subscriber.onNext(intercept);
+        if (intercept.tryAbandon()) {
+            try (processor) {
+                processor.onComplete();
+            }
+        }
+        emittedCount++;
+    }
+    return emittedCount;
+}
+
+/**
+ * Closes the queue of UnicastProcessors by completing all processors in it.
+ */
+private void closeQueue(SpscLinkedArrayQueue<UnicastProcessor<T>> queue) {
+    UnicastProcessor<T> processor = null;
+    while ((processor = queue.poll()) != null) {
+        try (processor) {
+            processor.onComplete();
+        }
+    }
+}
+
+/**
+ * Checks if the subscriber has been cancelled or if the queue is empty, and
+ * completes the subscriber if

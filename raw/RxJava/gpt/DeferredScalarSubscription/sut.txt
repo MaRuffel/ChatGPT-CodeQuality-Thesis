@@ -1,0 +1,30 @@
+    @Override
+    public final void request(long n) {
+        if (SubscriptionHelper.validate(n)) {
+            for (;;) {
+                int state = get();
+                // if the any bits 1-31 are set, we are either in fusion mode (FUSED_*)
+                // or request has been called (HAS_REQUEST_*)
+                if ((state & ~NO_REQUEST_HAS_VALUE) != 0) {
+                    return;
+                }
+                if (state == NO_REQUEST_HAS_VALUE) {
+                    if (compareAndSet(NO_REQUEST_HAS_VALUE, HAS_REQUEST_HAS_VALUE)) {
+                        T v = value;
+                        if (v != null) {
+                            value = null;
+                            Subscriber<? super T> a = downstream;
+                            a.onNext(v);
+                            if (get() != CANCELLED) {
+                                a.onComplete();
+                            }
+                        }
+                    }
+                    return;
+                }
+                if (compareAndSet(NO_REQUEST_NO_VALUE, HAS_REQUEST_NO_VALUE)) {
+                    return;
+                }
+            }
+        }
+    }

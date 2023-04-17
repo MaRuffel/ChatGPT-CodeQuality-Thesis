@@ -1,0 +1,59 @@
+@SuppressWarnings("unchecked")
+private void extractAnnotationsRecursively(Map<String, Object> annotationsMap, List<JavaAnnotation> annotations) {
+
+for (JavaAnnotation annotation : annotations) {
+  Map<String, Object> annotationParameters = new HashMap<>();
+  annotationsMap.put(annotation.getType().getCanonicalName().replaceAll("\\.", "_"), annotationParameters);
+
+  for (String propertyName : annotation.getPropertyMap().keySet()) {
+    Object value = annotation.getNamedParameter(propertyName);
+    switch (value.getClass().getSimpleName()) {
+      case "ArrayList":
+        List<Map<String, Object>> recursiveAnnotationList = List.of();
+        annotationParameters.put(propertyName, recursiveAnnotationList);
+        for (JavaAnnotation a : (List<JavaAnnotation>) value) {
+          Map<String, Object> annotationParameterParameters = new HashMap<>();
+          extractAnnotationsRecursively(annotationParameterParameters, List.of(a));
+          recursiveAnnotationList = List.copyOf(recursiveAnnotationList);
+          recursiveAnnotationList.add(annotationParameterParameters);
+        }
+        break;
+      case "Enum[]":
+        List<String> enumValues = Arrays.stream((Enum<?>[]) value)
+                                        .map(Enum::name)
+                                        .collect(Collectors.toUnmodifiableList());
+        annotationParameters.put(propertyName, enumValues);
+        break;
+      case "Object[]":
+        annotationParameters.put(propertyName, value);
+        // annotationParameters.put(propertyName, List.of(value));
+        break;
+      case "Enum":
+        annotationParameters.put(propertyName, ((Enum<?>) value).name());
+        break;
+      case "Collection":
+        annotationParameters.put(propertyName, value);
+        break;
+      case "Byte":
+      case "Short":
+      case "Integer":
+      case "Long":
+      case "Float":
+      case "Double":
+      case "Boolean":
+      case "Character":
+        annotationParameters.put(propertyName, value);
+        break;
+      case "String":
+        annotationParameters.put(propertyName, value);
+        break;
+      default:
+        // currently QDox only returns the expression stated in the code as value, but not
+        // resolves it. So value is always of type String and for this ParsedJavaModelBuilder we
+        // always come into the else-part
+        annotationParameters.put(propertyName, String.valueOf(value));
+        break;
+    }
+  }
+}
+}

@@ -1,0 +1,51 @@
+public class SampleProcessor {
+    private int res;
+    private boolean measuresOK;
+    private boolean attrOK;
+    private boolean healthOK;
+
+    public SampleProcessor(int length, int width, int weight, int attrA, int attrB, int attrC, int amount, int health, int age) {
+        this.res = compute(length, width, weight, attrA, attrB, attrC, amount, health, age);
+    }
+
+    public int compute(int length, int width, int weight, int attrA, int attrB, int attrC, int amount, int health, int age) {
+        measuresOK = length > 0 && width > 0 && weight > 0;
+
+        if (attrA > 2 && attrA < 50) {
+            attrOK = true;
+        } else {
+            attrOK = attrB > 2 && attrC > 5;
+        }
+
+        final int MIN_HEALTHY_AMOUNT = 200;
+        final int MIN_HEALTHY_AGE = 0;
+        final double HEALTHY_RATIO_THRESHOLD = 1.0;
+
+        healthOK = health == HealthStatus.HEALTHY &&
+                  amount > MIN_HEALTHY_AMOUNT &&
+                  age > MIN_HEALTHY_AGE &&
+                  age / (double) amount > HEALTHY_RATIO_THRESHOLD;
+
+        res = 0;
+        if (measuresOK) res++;
+        if (attrOK) res++;
+        if (healthOK) res++;
+
+        return res;
+    }
+
+    private enum HealthStatus {
+        HEALTHY(1),
+        UNHEALTHY(0);
+
+        private final int value;
+
+        HealthStatus(int value) {
+            this.value = value;
+        }
+
+        public int getValue() {
+            return value;
+        }
+    }
+}

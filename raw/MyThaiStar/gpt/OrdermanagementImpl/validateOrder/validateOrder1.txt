@@ -1,0 +1,23 @@
+private OrderEntity validateOrder(String token, OrderEntity order) {
+    BookingType bookingType = getOrderType(token);
+    switch (bookingType) {
+        case COMMON:
+            BookingCto booking = getBookingByToken(token).orElseThrow(NoBookingException::new);
+            if (!getBookingOrders(booking.getBooking().getId()).isEmpty()) {
+                throw new OrderAlreadyExistException();
+            }
+            order.setBookingId(booking.getBooking().getId());
+            break;
+        case INVITED:
+            InvitedGuestEto guest = getInvitedGuestByToken(token).orElseThrow(NoInviteException::new);
+            if (!getInvitedGuestOrders(guest.getId()).isEmpty()) {
+                throw new OrderAlreadyExistException();
+            }
+            order.setBookingId(guest.getBookingId());
+            order.setInvitedGuestId(guest.getId());
+            break;
+        default:
+            throw new IllegalArgumentException("Invalid booking type: " + bookingType);
+    }
+    return order;
+}

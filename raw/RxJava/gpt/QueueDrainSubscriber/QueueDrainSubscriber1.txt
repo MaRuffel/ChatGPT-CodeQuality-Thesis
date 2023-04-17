@@ -1,0 +1,38 @@
+protected final void fastPathOrderedEmitMax(U value, boolean delayError, Disposable dispose) {
+    Subscriber<? super V> downstreamSubscriber = downstream;
+    SimplePlainQueue<U> queue = this.queue;
+
+    if (!fastEnter()) {
+        queue.offer(value);
+        if (enter()) {
+            QueueDrainHelper.drainMaxLoop(queue, downstreamSubscriber, delayError, dispose, this);
+        }
+        return;
+    }
+
+    try {
+        long requestedCount = requested.get();
+        if (requestedCount == 0) {
+            cancelled = true;
+            throw MissingBackpressureException.createDefault();
+        }
+
+        if (queue.isEmpty() && accept(downstreamSubscriber, value)) {
+            if (requestedCount != Long.MAX_VALUE) {
+                produced(1);
+            }
+            if (leave(-1) == 0) {
+                return;
+            }
+        } else {
+            queue.offer(value);
+        }
+
+        QueueDrainHelper.drainMaxLoop(queue, downstreamSubscriber, delayError, dispose, this);
+    } catch (Throwable ex) {
+        cancelled = true;
+        dispose.dispose();
+        downstreamSubscriber.onError(ex);
+    }
+}
+Note that this is just one possible way to improve the code, and there may be other changes that could be made depending on the specific requirements and constraints of your application.

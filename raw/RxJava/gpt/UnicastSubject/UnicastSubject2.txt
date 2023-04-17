@@ -1,0 +1,66 @@
+void drainNormal(Observer<? super T> observer) {
+    int missed = 1;
+    SimpleQueue<T> queue = this.queue;
+    boolean failFast = !this.delayError;
+    boolean canBeError = true;
+
+    while (true) {
+        if (disposed) {
+            downstream.lazySet(null);
+            queue.clear();
+            return;
+        }
+
+        if (done) {
+            if (failFast && canBeError) {
+                if (shouldPropagateErrorImmediately(queue, observer)) {
+                    return;
+                } else {
+                    canBeError = false;
+                }
+            }
+
+            if (queue.isEmpty()) {
+                propagateCompletion(observer);
+                return;
+            }
+        }
+
+        T value = queue.poll();
+        if (value == null) {
+            break;
+        }
+
+        observer.onNext(value);
+    }
+
+    missed = wip.addAndGet(-missed);
+    if (missed == 0) {
+        return;
+    }
+}
+
+private boolean shouldPropagateErrorImmediately(SimpleQueue<T> queue, Observer<? super T> observer) {
+    if (queue.isEmpty()) {
+        return false;
+    }
+
+    Throwable error = errorSupplier.get();
+    if (error != null) {
+        queue.clear();
+        observer.onError(error);
+        return true;
+    }
+
+    return false;
+}
+
+private void propagateCompletion(Observer<? super T> observer) {
+    Throwable error = errorSupplier.get();
+    if (error != null) {
+        observer.onError(error);
+    } else {
+        observer.onComplete();
+    }
+}
+Again, without more context, it's difficult to say whether these changes are appropriate for your particular use case. However, I hope this gives you some ideas for how you could improve the code.

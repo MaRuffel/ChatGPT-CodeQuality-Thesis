@@ -1,0 +1,55 @@
+        void drain() {
+            if (wip.getAndIncrement() != 0) {
+                return;
+            }
+            final Subscriber<? super Flowable<T>> a = downstream;
+            final SpscLinkedArrayQueue<UnicastProcessor<T>> q = queue;
+            int missed = 1;
+            outer:
+            for (;;) {
+                if (cancelled) {
+                    UnicastProcessor<T> up = null;
+                    while ((up = q.poll()) != null) {
+                        up.onComplete();
+                    }
+                } else {
+                    long r = requested.get();
+                    long e = 0;
+                    while (e != r) {
+                        boolean d = done;
+                        UnicastProcessor<T> t = q.poll();
+                        boolean empty = t == null;
+                        if (cancelled) {
+                            continue outer;
+                        }
+                        if (checkTerminated(d, empty, a, q)) {
+                            return;
+                        }
+                        if (empty) {
+                            break;
+                        }
+                        FlowableWindowSubscribeIntercept<T> intercept = new FlowableWindowSubscribeIntercept<>(t);
+                        a.onNext(intercept);
+                        if (intercept.tryAbandon()) {
+                            t.onComplete();
+                        }
+                        e++;
+                    }
+                    if (e == r) {
+                        if (cancelled) {
+                            continue;
+                        }
+                        if (checkTerminated(done, q.isEmpty(), a, q)) {
+                            return;
+                        }
+                    }
+                    if (e != 0L && r != Long.MAX_VALUE) {
+                        requested.addAndGet(-e);
+                    }
+                }
+                missed = wip.addAndGet(-missed);
+                if (missed == 0) {
+                    break;
+                }
+            }
+        }

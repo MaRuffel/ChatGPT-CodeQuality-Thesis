@@ -1,0 +1,59 @@
+private DeployState calculateState() {
+    int pendingCount = 0, startingCount = 0, startedCount = 0, stoppingCount = 0, stoppedCount = 0, failedCount = 0;
+    for (ModuleModel module : applicationModel.getModuleModels()) {
+        ModuleDeployer deployer = module.getDeployer();
+        switch (deployer != null ? deployer.getState() : ModuleDeployerState.PENDING) {
+            case PENDING:
+                pendingCount++;
+                break;
+            case STARTING:
+                startingCount++;
+                break;
+            case STARTED:
+                startedCount++;
+                break;
+            case STOPPING:
+                stoppingCount++;
+                break;
+            case STOPPED:
+                stoppedCount++;
+                break;
+            case FAILED:
+                failedCount++;
+                break;
+        }
+    }
+
+    if (failedCount > 0) {
+        return DeployState.FAILED;
+    } else if (startedCount > 0) {
+        if (pendingCount + startingCount + stoppingCount + stoppedCount == 0) {
+            return DeployState.STARTED;
+        } else if (pendingCount + startingCount > 0) {
+            return DeployState.STARTING;
+        } else if (stoppingCount + stoppedCount > 0) {
+            return DeployState.STOPPING;
+        }
+    } else if (startingCount > 0) {
+        return DeployState.STARTING;
+    } else if (pendingCount > 0) {
+        if (startingCount + stoppingCount + stoppedCount == 0) {
+            return DeployState.PENDING;
+        } else if (!stoppingCount.isEmpty() || !stoppedCount.isEmpty()) {
+            return DeployState.STOPPING;
+        }
+    } else if (stoppingCount > 0) {
+        return DeployState.STOPPING;
+    } else if (stoppedCount > 0) {
+        return DeployState.STOPPED;
+    }
+
+    return DeployState.UNKNOWN;
+}
+
+private int countModuleStates(ModuleDeployerState state) {
+    return (int) applicationModel.getModuleModels().stream()
+            .map(ModuleModel::getDeployer)
+            .filter(deployer -> deployer != null && deployer.getState() == state)
+            .count();
+}

@@ -1,0 +1,35 @@
+  private String getContentFormatedWithCost(OrderEntity order) {
+    List<OrderLineEntity> orderLines = orderLineDao.findOrderLines(order.getId());
+
+    StringBuilder sb = new StringBuilder();
+    sb.append("\n");
+
+    BigDecimal finalPrice = BigDecimal.ZERO;
+
+    for (OrderLineEntity orderLine : orderLines) {
+        DishCto dishCto = dishManagement.findDish(orderLine.getDishId());
+        List<IngredientEto> extras = new ArrayList<>(new HashSet<>(dishCto.getExtras()));
+        BigDecimal linePrice = BigDecimal.ZERO;
+
+        sb.append(String.format("%s, x%d. Extras: ", dishCto.getDish().getName(), orderLine.getAmount()));
+
+        for (Ingredient extra : extras) {
+          for (Ingredient selectedExtra : orderLine.getExtras()) {
+            if (extra.getId().equals(selectedExtra.getId())) {
+              sb.append(extra.getName()).append(",");
+              linePrice = linePrice.add(extra.getPrice());
+              break;
+            }
+          }
+        }
+
+        BigDecimal dishCost = dishCto.getDish().getPrice().multiply(new BigDecimal(orderLine.getAmount()));
+        linePrice = linePrice.add(dishCost);
+
+        sb.append(String.format(" ==> Dish cost: %s%n", linePrice.toString()));
+
+        finalPrice = finalPrice.add(linePrice);
+    }
+
+    return sb.append(String.format("Total Order cost: %s", finalPrice.toString())).toString();
+  }

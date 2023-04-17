@@ -1,0 +1,29 @@
+    private void receive(String msg, InetSocketAddress remoteAddress) {
+        if (logger.isInfoEnabled()) {
+            logger.info("Receive multicast message: " + msg + " from " + remoteAddress);
+        }
+        if (msg.startsWith(REGISTER)) {
+            URL url = URL.valueOf(msg.substring(REGISTER.length()).trim());
+            registered(url);
+        } else if (msg.startsWith(UNREGISTER)) {
+            URL url = URL.valueOf(msg.substring(UNREGISTER.length()).trim());
+            unregistered(url);
+        } else if (msg.startsWith(SUBSCRIBE)) {
+            URL url = URL.valueOf(msg.substring(SUBSCRIBE.length()).trim());
+            Set<URL> urls = getRegistered();
+            if (CollectionUtils.isNotEmpty(urls)) {
+                for (URL u : urls) {
+                    if (UrlUtils.isMatch(url, u)) {
+                        String host = remoteAddress != null && remoteAddress.getAddress() != null ? remoteAddress.getAddress().getHostAddress() : url.getIp();
+                        if (url.getParameter("unicast", true) // Whether the consumer's machine has only one process
+                            && !NetUtils.getLocalHost().equals(host)) { // Multiple processes in the same machine cannot be unicast with unicast or there will be only one process receiving information
+                            unicast(REGISTER + " " + u.toFullString(), host);
+                        } else {
+                            multicast(REGISTER + " " + u.toFullString());
+                        }
+                    }
+                }
+            }
+        }/* else if (msg.startsWith(UNSUBSCRIBE)) {
+        }*/
+    }

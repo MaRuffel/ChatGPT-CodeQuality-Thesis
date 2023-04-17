@@ -1,0 +1,39 @@
+private static final int NO_REQUEST = 0;
+private static final int HAS_REQUEST_NO_VALUE = 1;
+private static final int HAS_REQUEST_HAS_VALUE = 2;
+private static final int CANCELLED = 3;
+
+@Override
+public final void request(long n) {
+    if (!SubscriptionHelper.validate(n)) {
+        return;
+    }
+    
+    for (;;) {
+        int state = get();
+        
+        if ((state & ~(HAS_REQUEST_HAS_VALUE | HAS_REQUEST_NO_VALUE)) != 0) {
+            // If any bits 1-31 are set, we are either in fusion mode (FUSED_*) 
+            // or request has been called (HAS_REQUEST_*).
+            return;
+        }
+        
+        if (state == HAS_REQUEST_HAS_VALUE) {
+            // We have a value and a request.
+            T value = getAndSet(null);
+            Subscriber<? super T> downstream = this.downstream;
+            downstream.onNext(value);
+            
+            if (get() != CANCELLED) {
+                downstream.onComplete();
+            }
+            
+            return;
+        }
+        
+        if (compareAndSet(NO_REQUEST, HAS_REQUEST_NO_VALUE)) {
+            // We have a request but no value.
+            return;
+        }
+    }
+}

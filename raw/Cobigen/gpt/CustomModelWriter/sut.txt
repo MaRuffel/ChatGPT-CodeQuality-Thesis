@@ -1,0 +1,53 @@
+  @Override
+  public ModelWriter writeAnnotation(JavaAnnotation annotation) {
+
+    this.buffer.write('@');
+    this.buffer.write(annotation.getType().getGenericValue());
+    if (!annotation.getPropertyMap().isEmpty()) {
+      this.buffer.indent();
+      this.buffer.write('(');
+      Set<Entry<String, AnnotationValue>> annotationEntrySet = annotation.getPropertyMap().entrySet();
+      Iterator<Map.Entry<String, AnnotationValue>> iterator = annotationEntrySet.iterator();
+      while (iterator.hasNext()) {
+        Map.Entry<String, AnnotationValue> entry = iterator.next();
+        if (annotationEntrySet.size() != 1 || !"value".equals(entry.getKey())) {
+          this.buffer.write(entry.getKey());
+          this.buffer.write('=');
+        }
+
+        if (entry.getValue().getParameterValue() instanceof JavaAnnotation) {
+          writeAnnotation((JavaAnnotation) entry.getValue().getParameterValue());
+        } else if (entry.getValue().getParameterValue() instanceof Collection<?>) {
+          Collection<?> annotations = (Collection<?>) entry.getValue().getParameterValue();
+          Object[] a = annotations.toArray();
+          this.buffer.write("{");
+          for (int i = 0; i < annotations.toArray().length; i++) {
+            if (a[i] instanceof JavaAnnotation) {
+              if (i > 0) {
+                this.buffer.write(", ");
+              }
+              writeAnnotation((JavaAnnotation) a[i]);
+            } else {
+              if (i > 0) {
+                this.buffer.write(", " + a[i].toString());
+              } else {
+                this.buffer.write(a[i].toString());
+              }
+            }
+          }
+          this.buffer.write("}");
+        } else {
+          this.buffer.write(entry.getValue().toString());
+        }
+
+        if (iterator.hasNext()) {
+          this.buffer.write(',');
+          this.buffer.newline();
+        }
+      }
+      this.buffer.write(')');
+      this.buffer.deindent();
+    }
+    this.buffer.newline();
+    return this;
+  }

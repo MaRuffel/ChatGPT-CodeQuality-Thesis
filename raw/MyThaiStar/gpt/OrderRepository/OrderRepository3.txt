@@ -1,0 +1,49 @@
+import static org.springframework.data.jpa.domain.Specification.where;
+import static org.springframework.data.jpa.domain.Specifications.and;
+import static org.springframework.util.StringUtils.isEmpty;
+
+default Page<OrderEntity> findOrders(OrderSearchCriteriaTo criteria) {
+    OrderEntity order = newDslAlias();
+    JPAQuery<OrderEntity> query = newDslQuery(order);
+
+    query.where(
+        and(
+            bookingIdEquals(criteria.getBookingId(), order),
+            invitedGuestIdEquals(criteria.getInvitedGuestId(), order),
+            hostTokenEquals(criteria.getHostToken(), order),
+            emailLike(criteria.getEmail(), order),
+            bookingTokenEquals(criteria.getBookingToken(), order)
+        )
+    );
+
+    return QueryUtil.get().findPaginated(criteria.getPageable(), query, true);
+}
+
+private Specification<OrderEntity> bookingIdEquals(Long bookingId, OrderEntity order) {
+    return isEmpty(bookingId) || isEmpty(order.getBooking()) ? null :
+        where((root, query, cb) -> cb.equal(root.get("booking").get("id"), bookingId));
+}
+
+private Specification<OrderEntity> invitedGuestIdEquals(Long invitedGuestId, OrderEntity order) {
+    return isEmpty(invitedGuestId) || isEmpty(order.getInvitedGuest()) ? null :
+        where((root, query, cb) -> cb.equal(root.get("invitedGuest").get("id"), invitedGuestId));
+}
+
+private Specification<OrderEntity> hostTokenEquals(String hostToken, OrderEntity order) {
+    return isEmpty(hostToken) || isEmpty(order.getHost()) ? null :
+        where((root, query, cb) -> cb.equal(root.get("booking").get("bookingToken"), hostToken));
+}
+
+private Specification<OrderEntity> emailLike(String email, OrderEntity order) {
+    return isEmpty(email) || isEmpty(order.getBooking()) ? null :
+        where((root, query, cb) ->
+            cb.like(cb.lower(root.get("booking").get("email")), "%" + email.toLowerCase() + "%")
+        );
+}
+
+private Specification<OrderEntity> bookingTokenEquals(String bookingToken, OrderEntity order) {
+    return isEmpty(bookingToken) || isEmpty(order.getBooking()) ? null :
+        where((root, query, cb) -> 
+            cb.equal(cb.lower(root.get("booking").get("bookingToken")), bookingToken.toLowerCase())
+        );
+}

@@ -1,0 +1,46 @@
+Use Java 8 stream instead of for loop
+Instead of iterating through the list of order lines with a for loop, you can use Java 8 streams to process it in a more concise way. You can use the map() method to transform each OrderLineEntity to a String, and then use the collect() method to combine all the Strings into one. This would also eliminate the need for the StringBuilder:
+less
+Copy code
+String orderLinesFormatted = orderLines.stream()
+        .map(orderLine -> {
+            DishCto dishCto = dishManagement.findDish(orderLine.getDishId());
+            List<IngredientEto> extras = dishCto.getExtras();
+            Set<IngredientEto> set = new HashSet<>(extras);
+            extras.clear();
+            extras.addAll(set);
+            BigDecimal linePrice = dishCto.getDish().getPrice().multiply(BigDecimal.valueOf(orderLine.getAmount()));
+            for (Ingredient extra : extras) {
+                for (Ingredient selectedExtra : orderLine.getExtras()) {
+                    if (extra.getId().equals(selectedExtra.getId())) {
+                        linePrice = linePrice.add(extra.getPrice());
+                        break;
+                    }
+                }
+            }
+            return String.format("%s, x%d. Extras: %s. Dish cost: %s",
+                    dishCto.getDish().getName(),
+                    orderLine.getAmount(),
+                    extras.stream().map(IngredientEto::getName).collect(Collectors.joining(",")),
+                    linePrice.toString());
+        })
+        .collect(Collectors.joining("\n"));
+Use try-with-resources for DAO objects
+If your DAO objects implement the AutoCloseable interface, you can use the try-with-resources statement to automatically close them when the block is exited. This would ensure that the resources are properly released and prevent resource leaks. Here's an example:
+java
+Copy code
+try (OrderLineDao orderLineDao = new OrderLineDao()) {
+    List<OrderLineEntity> orderLines = orderLineDao.findOrderLines(order.getId());
+    // process order lines
+} catch (Exception e) {
+    // handle exception
+}
+Use BigDecimal.setScale() to format decimal numbers
+When formatting decimal numbers, you can use the setScale() method of the BigDecimal class to specify the number of decimal places to display. This would ensure that the output is consistent and easier to read. For example, you can format the finalPrice like this:
+perl
+Copy code
+BigDecimal finalPrice = BigDecimal.ZERO;
+// calculate final price
+return String.format("%s\nTotal Order cost: %s",
+        orderLinesFormatted,
+        finalPrice.setScale(2, RoundingMode.HALF_UP).toString());

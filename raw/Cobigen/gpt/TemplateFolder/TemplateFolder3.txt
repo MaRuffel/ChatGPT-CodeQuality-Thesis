@@ -1,0 +1,22 @@
+public TemplatePath navigate(String relativePath) {
+    TemplateFolder folder = this;
+    for (Path path : Paths.get(relativePath)) {
+        String filename = path.toString();
+        if (filename.equals("..")) {
+            TemplateFolder parent = folder.getParent();
+            if (parent == null) {
+                return null;
+            }
+            folder = parent;
+        } else if (!filename.equals(".")) {
+            try (TemplatePath child = folder.getChild(filename)) {
+                if (child == null || child.isFile()) {
+                    return null;
+                }
+                folder = (TemplateFolder) child;
+            }
+        }
+    }
+    return folder;
+}
+Note: I made assumptions about the types of TemplateFolder, TemplatePath, and getChild() method based on the context of the code. Please adjust the code accordingly if those assumptions are incorrect.

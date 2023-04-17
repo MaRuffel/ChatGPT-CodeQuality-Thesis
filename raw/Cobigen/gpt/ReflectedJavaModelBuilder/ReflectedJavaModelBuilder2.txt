@@ -1,0 +1,70 @@
+Use Java 8 Stream API for filtering instead of traditional loop:
+Instead of using a for loop to filter out certain methods, you can use Java 8 Stream API and filter out the methods with the specified names as follows:
+less
+Copy code
+Arrays.stream(annotation.annotationType().getMethods())
+          .filter(getter -> getter.getParameterTypes().length == 0)
+          .filter(getter -> !getter.getName().equals("hashCode"))
+          .filter(getter -> !getter.getName().equals("annotationType"))
+          .filter(getter -> !getter.getName().equals("toString"))
+          .forEach(getter -> {
+              // ... rest of the code inside the for loop
+          });
+Use diamond operator (<>):
+To make the code more concise, you can use the diamond operator (<>), which was introduced in Java 7, to avoid repeating the type arguments for HashMap, LinkedList and other generic classes. For example:
+javascript
+Copy code
+Map<String, Object> annotationParameters = new HashMap<>();
+can be replaced with:
+
+javascript
+Copy code
+Map<String, Object> annotationParameters = new HashMap<>();
+Use try-with-resources:
+To avoid leaving resources open, you should use the try-with-resources statement when dealing with resources that need to be closed. In this case, you should close the Stream returned by Arrays.stream(annotation.annotationType().getMethods()). For example:
+less
+Copy code
+try (Stream<Method> methodStream = Arrays.stream(annotation.annotationType().getMethods())) {
+    methodStream
+      .filter(getter -> getter.getParameterTypes().length == 0)
+      .filter(getter -> !getter.getName().equals("hashCode"))
+      .filter(getter -> !getter.getName().equals("annotationType"))
+      .filter(getter -> !getter.getName().equals("toString"))
+      .forEach(getter -> {
+          // ... rest of the code inside the for loop
+      });
+} catch (Exception e) {
+    LOG.error("An error occurred while processing annotations", e);
+}
+Use Java collection factories:
+You can use Java collection factories such as Collections.emptyList(), Collections.singletonList(), Collections.singletonMap(), etc. to create immutable collections instead of using Lists.newLinkedList() and Maps.newHashMap().
+Here's an improved version of the code:
+
+typescript
+Copy code
+private void extractAnnotationsRecursively(Map<String, Object> annotationsMap, Annotation[] annotations) {
+    for (Annotation annotation : annotations) {
+        Map<String, Object> annotationParameters = new HashMap<>();
+        annotationsMap.put(annotation.annotationType().getCanonicalName().replaceAll("\\.", "_"), annotationParameters);
+
+        try (Stream<Method> methodStream = Arrays.stream(annotation.annotationType().getMethods())) {
+            methodStream
+              .filter(getter -> getter.getParameterTypes().length == 0)
+              .filter(getter -> !getter.getName().equals("hashCode"))
+              .filter(getter -> !getter.getName().equals("annotationType"))
+              .filter(getter -> !getter.getName().equals("toString"))
+              .forEach(getter -> {
+                  try {
+                      Object value = getter.invoke(annotation);
+                      if (value instanceof Annotation[]) {
+                          List<Map<String, Object>> recursiveAnnotationList = new LinkedList<>();
+                          for (Annotation a : (Annotation[]) value) {
+                              Map<String, Object> annotationParameterParameters = new HashMap<>();
+                              extractAnnotationsRecursively(annotationParameterParameters, new Annotation[] { a });
+                              recursiveAnnotationList.add(annotationParameterParameters);
+                          }
+                          annotationParameters.put(getter.getName(), recursiveAnnotationList);
+                      } else if (value instanceof Enum<?>[]) {
+                          List<String> enumValues = new LinkedList<>();
+                          for (Enum<?> e : ((Enum<?>[]) value)) {
+                              enumValues.add(e

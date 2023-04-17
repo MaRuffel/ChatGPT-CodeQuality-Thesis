@@ -1,0 +1,42 @@
+void drainQueue(Observer<T> observer) {
+    int missed = 1;
+    SimpleQueue<T> q = queue;
+    boolean failFast = !delayError;
+    boolean canBeError = true;
+    
+    while (true) {
+        if (disposed) {
+            downstream.lazySet(null);
+            q.clear();
+            return;
+        }
+
+        boolean done = this.done;
+        T value = queue.poll();
+        boolean empty = value == null;
+
+        if (done && failFast && canBeError) {
+            if (failedFast(q, observer)) {
+                return;
+            } else {
+                canBeError = false;
+            }
+        }
+
+        if (done && empty) {
+            errorOrComplete(observer);
+            return;
+        }
+
+        if (empty) {
+            break;
+        }
+
+        observer.onNext(value);
+    }
+
+    missed = wip.addAndGet(-missed);
+    if (missed != 0) {
+        return;
+    }
+}
