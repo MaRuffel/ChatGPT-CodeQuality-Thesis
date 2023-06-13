@@ -8,3 +8,6 @@ It contains a set of samples and the corresponding genereated results as well as
 - complexity
 - sei
 - smells
+
+### Benchmark
+The dataset also contains pre-defined possible solutions to serve as a benchmark.
